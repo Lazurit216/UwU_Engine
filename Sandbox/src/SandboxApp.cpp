@@ -2,13 +2,8 @@
 class Sandbox : public UwU_Engine::Application
 {
 public:
-	Sandbox()
-	{
-	}
-
-	~Sandbox()
-	{
-	}
+	Sandbox() {}
+	~Sandbox() {}
 };
 
 UwU_Engine::Application* UwU_Engine::CreateApplication()

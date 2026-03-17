@@ -4,7 +4,7 @@
 
 #include "Engine/Core.h"
 #include "Engine/Application.h"
-#include <stdio.h>
+#include "Engine/Logger.h"
 
 //Entry point
 #include "Engine/EntryPoint.h"

@@ -1,0 +1,148 @@
+#include "Logger.h"
+#include <windows.h>
+#include <filesystem>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+
+namespace UwU_Engine
+{
+    namespace fs = std::filesystem;
+
+    Logger* Logger::s_EngineLogger = nullptr;
+    Logger* Logger::s_ClientLogger = nullptr;
+
+    // Helpers
+    bool Logger::EnsureLogsCacheDirectory()
+    {
+        try
+        {
+            fs::path logsCachePath = fs::current_path() / "LogsCache";
+            if (!fs::exists(logsCachePath))
+                fs::create_directories(logsCachePath);
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << std::format("[Logger] Failed to create LogsCache directory: {}\n", e.what());
+            return false;
+        }
+    }
+
+    std::string Logger::GetLogFilePath(const std::string& fileName)
+    {
+        try
+        {
+            fs::path logsCachePath = fs::current_path() / "LogsCache" / fileName;
+            return logsCachePath.string();
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << std::format("[Logger] Failed to construct log file path: {}\n", e.what());
+            return "";
+        }
+    }
+
+    // Constructor / Destructor
+    Logger::Logger(const std::string& name, const std::string& filePath, Level minLevel)
+        : m_name(name), m_minLevel(minLevel)
+    {
+        if (!filePath.empty())
+        {
+            if (!EnsureLogsCacheDirectory())
+            {
+                OutputDebugStringA(std::format("[{}] Warning: Could not ensure LogsCache directory\n", m_name).c_str());
+                return;
+            }
+
+            std::string fullPath = GetLogFilePath(filePath);
+            if (fullPath.empty())
+            {
+                OutputDebugStringA(std::format("[{}] Error: Could not construct log file path\n", m_name).c_str());
+                return;
+            }
+
+            m_file.open(fullPath, std::ios::out | std::ios::app);
+            if (!m_file.is_open())
+            {
+                std::string errorMsg = std::format("[{}] Could not open log file: {}\n", m_name, fullPath);
+                std::cerr << errorMsg;
+                OutputDebugStringA(errorMsg.c_str());
+            }
+            else
+            {
+                std::ostringstream initMsg;
+                initMsg << std::format("=== {} Logger Initialized: {} ===\n", m_name, fullPath);
+                m_file << initMsg.str();
+                m_file.flush();
+            }
+        }
+    }
+
+    Logger::~Logger()
+    {
+        if (m_file.is_open())
+        {
+            m_file << std::format("=== {} Logger Shutdown ===\n", m_name);
+            m_file.flush();
+            m_file.close();
+        }
+    }
+
+    // Write
+    void Logger::Write(Level level, const std::string& message)
+    {
+        if (static_cast<int>(level) < static_cast<int>(m_minLevel)) return;
+
+        // Timestamp
+        auto now = std::chrono::system_clock::now();
+        auto ttime = std::chrono::system_clock::to_time_t(now);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now.time_since_epoch()) % 1000;
+
+        std::tm tm{};
+#ifdef _WIN32
+        localtime_s(&tm, &ttime);
+#else
+        localtime_r(&ttime, &tm);
+#endif
+
+        std::ostringstream line;
+        line << std::format("{:%H:%M:%S}.{:03d} [{}] [{}] {}\n",
+            std::chrono::floor<std::chrono::seconds>(now),
+            ms.count(),
+            LevelTag(level),
+            m_name,
+            message
+        );
+
+        std::string formatted = line.str();
+
+        std::lock_guard lock(m_mutex);
+
+        std::cout << formatted;
+        OutputDebugStringA(formatted.c_str());
+
+        if (m_file.is_open())
+        {
+            m_file << formatted;
+            m_file.flush();
+        }
+    }
+
+    // Static Init / Shutdown
+    void Logger::Init()
+    {
+        s_EngineLogger = new Logger("ENGINE", "Engine.log", Level::Trace);
+        s_ClientLogger = new Logger("CLIENT", "Client.log", Level::Trace);
+    }
+
+    void Logger::Shutdown()
+    {
+        delete s_EngineLogger;
+        s_EngineLogger = nullptr;
+
+        delete s_ClientLogger;
+        s_ClientLogger = nullptr;
+    }
+}
