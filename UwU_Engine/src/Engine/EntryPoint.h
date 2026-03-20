@@ -7,7 +7,7 @@ extern UwU_Engine::Application* UwU_Engine::CreateApplication();
 int main(int argc, char** argv)
 {
 	UwU_Engine::Logger::Init();
-	UWU_ENGINE_INFO("U a Bebra");
+	UWU_ENGINE_INFO("Engine started");
 	auto app = UwU_Engine::CreateApplication();
 	app->Run();
 	delete app;

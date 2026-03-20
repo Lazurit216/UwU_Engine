@@ -1,0 +1,41 @@
+cmake_minimum_required(VERSION 3.20)
+project(UwU_Engine VERSION 0.1.0 LANGUAGES CXX)
+
+add_custom_target(show-config ALL
+    COMMAND ${CMAKE_COMMAND} -E echo "Current config = $<CONFIG>"
+    COMMENT "Printing current configuration"
+)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(PLATFORM "x64")
+
+if(DEFINED CMAKE_VS_PLATFORM_NAME AND NOT "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "")
+    set(PLATFORM "${CMAKE_VS_PLATFORM_NAME}")
+endif()
+
+message(STATUS "PLATFORM = ${PLATFORM}")
+message(STATUS "CMAKE_VS_PLATFORM_NAME = ${CMAKE_VS_PLATFORM_NAME}")
+message(STATUS "CMAKE_GENERATOR_PLATFORM = ${CMAKE_GENERATOR_PLATFORM}")
+
+# === Output directories (final .exe and .dll) ===
+message("CMAKE_PROJECT_NAME = ${CMAKE_PROJECT_NAME}")
+set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>-${PLATFORM}/${CMAKE_PROJECT_NAME}")
+message(STATUS "OUTPUT_DIR = ${OUTPUT_DIR}")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${OUTPUT_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${OUTPUT_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${OUTPUT_DIR})
+
+# === Intermediate directories (like your bin-int) ===
+set(INT_DIR "${CMAKE_SOURCE_DIR}/bin-int/$<CONFIG>-${PLATFORM}/${CMAKE_PROJECT_NAME}")
+message(STATUS "INT_DIR = ${INT_DIR}")
+
+set(CMAKE_PDB_OUTPUT_DIRECTORY ${INT_DIR})
+set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY ${INT_DIR})
+#set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  "${CMAKE_SOURCE_DIR}/bin-int/$<CONFIG>-${PLATFORM}")
+
+add_subdirectory(UwU_Engine)
+add_subdirectory(Sandbox)

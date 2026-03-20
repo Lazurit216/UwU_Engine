@@ -2,6 +2,7 @@
 **/bin/
 bin-int/
 Intermediates/
+build/
 
 # log files
 *.log
@@ -15,3 +16,5 @@ Intermediates/
 **.csproj
 
 # Directories
+
+checklist.txt
