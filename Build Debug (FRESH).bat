@@ -1,6 +1,6 @@
 @echo off
 echo ====================================================
-echo    UwU Engine - Building Debug
+echo    UwU Engine - Building Debug (FRESH)
 echo ====================================================
 
 if not exist "build" mkdir build
@@ -8,9 +8,9 @@ if not exist "build" mkdir build
 cd build
 
 echo [1/2] Configuring CMake...
-cmake .. -G "Visual Studio 17 2022" -A x64 
+cmake .. -G "Visual Studio 17 2022" -A x64 --fresh
 echo [2/2] Building Debug...
-cmake --build . --config Debug --verbose
+cmake --build . --config Debug --verbose 
 
 echo.
 echo ====================================================

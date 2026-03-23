@@ -17,4 +17,4 @@ build/
 
 # Directories
 
-checklist.txt
+*.lnk
