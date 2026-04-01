@@ -1,6 +1,6 @@
 #pragma once
 #include "Core.h"
-
+#include "Events/Events.h"
 namespace UwU_Engine
 {
     class UWU_API Window
@@ -52,14 +52,14 @@ namespace UwU_Engine
         virtual void Maximize() = 0;
         virtual void Restore() = 0;
 
-        using ResizeCallback = std::function<void(int w, int h)>;
-        void SetResizeCallback(ResizeCallback cb) { m_onResize = cb; }
+        using EventCallback = std::function<void(Event&)>;
+        void SetEventCallback(EventCallback cb) { m_eventCallback = cb; }
 
     protected:
         bool m_shouldClose = false;
         int m_width = 0;
         int m_height = 0;
         std::string m_title;
-        ResizeCallback m_onResize;
+        EventCallback m_eventCallback;
     };
 }

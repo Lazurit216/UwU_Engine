@@ -1,6 +1,6 @@
-#include "Win32Window.h"
 #include "uwupch.h"
-
+#include "Win32Window.h"
+#include "Engine/Events/WindowEvents.h"
 namespace UwU_Engine
 {
     Win32Window::Win32Window() {
@@ -139,7 +139,8 @@ namespace UwU_Engine
     }
 
     // Статический обработчик сообщений
-    LRESULT CALLBACK Win32Window::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    LRESULT CALLBACK Win32Window::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
+    {
         Win32Window* window = nullptr;
 
         if (msg == WM_NCCREATE) {
@@ -151,24 +152,61 @@ namespace UwU_Engine
             window = reinterpret_cast<Win32Window*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
         }
 
-        if (window) {
-            switch (msg) {
-            case WM_CLOSE:
-                window->m_shouldClose = true;
-                DestroyWindow(hwnd);
-                return 0;
+        if (window && window->m_eventCallback) 
+        {
+            switch (msg) 
+            {
+                case WM_CLOSE:
+                {
+                    WindowCloseEvent e;
+                    window->m_eventCallback(e);
+                    window->m_shouldClose = true;
+                    DestroyWindow(hwnd);
+                    return 0;
+                }
 
-            case WM_DESTROY:
-                //PostQuitMessage(0);
-                return 0;
+                case WM_SIZE:
+                {
+                    int w = LOWORD(lParam);
+                    int h = HIWORD(lParam);
+                    window->m_width = w;
+                    window->m_height = h;
 
-            case WM_SIZE: {
-                window->m_width = LOWORD(lParam);
-                window->m_height = HIWORD(lParam);
-                if (window->m_onResize)
-                    window->m_onResize(window->m_width, window->m_height);
-                return 0;
-            }
+                    switch (wParam)
+                    {
+                    case SIZE_MINIMIZED:
+                    {
+                        WindowMinimizeEvent e;
+                        window->m_eventCallback(e);
+                        break;
+                    }
+                    case SIZE_MAXIMIZED:
+                    {
+                        WindowMaximizeEvent e;
+                        window->m_eventCallback(e);
+                        // Also fire resize so renderer updates buffers
+                        WindowResizeEvent re(w, h);
+                        window->m_eventCallback(re);
+                        break;
+                    }
+                    case SIZE_RESTORED:
+                    {
+                        WindowRestoreEvent e;
+                        window->m_eventCallback(e);
+                        // Also fire resize
+                        WindowResizeEvent re(w, h);
+                        window->m_eventCallback(re);
+                        break;
+                    }
+                    }
+                    return 0;
+                }
+
+                case WM_DESTROY:
+                {
+                    PostQuitMessage(0);
+                    return 0;
+                }
             }
         }
 

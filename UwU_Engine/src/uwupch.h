@@ -1,21 +1,42 @@
 #pragma once
 
-#include <iostream>
-#include <filesystem>
+#include <algorithm>
+#include <array>
+#include <cassert>
 #include <chrono>
-#include <iomanip>
-#include <sstream>
-#include <string>
-#include <fstream>
-#include <mutex>
-#include <format>
 #include <cstdint>
-#include <optional>
+#include <filesystem>
+#include <format>
+#include <fstream>
 #include <functional>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "Engine/Logger.h"
 //#include "Engine/Window.h"
 
 #ifdef UWU_PLATFORM_WINDOWS
+	//#define NOMINMAX
 	#include <Windows.h>
+
+	// DirectX headers (alphabetical)
+	#include <d3d12.h>
+	#include <d3d12sdklayers.h>  // ID3D12Debug
+	#include <D3Dcompiler.h>
+	#include <DirectXCollision.h>
+	#include <DirectXColors.h>
+	#include <DirectXMath.h>
+	#include <DirectXPackedVector.h>
+	#include <dxgi1_4.h>
+	#include <dxgi1_6.h>
+	#include <wrl.h>
+	#include <wrl/client.h>
 #endif 
