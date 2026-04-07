@@ -1,7 +1,9 @@
-#include "uwupch.h"
+﻿#include "uwupch.h"
 #include "Application.h"
-#include "Renderer/DirectX12/DX12Renderer.h"
-
+#include "GameState/States/LoadingState.h"
+#include "GameState/States/MainMenuState.h"
+#include "GameState/States/GameplayState.h"
+#include "GameState/States/GamePauseState.h"
 namespace UwU_Engine 
 {
 	Application::Application()
@@ -10,11 +12,31 @@ namespace UwU_Engine
 
 		m_window->SetEventCallback(std::bind(&Application::OnEvent, this, std::placeholders::_1));
 
-		m_renderer = std::make_unique<DX12Renderer>();
+		m_renderer = IRenderer::Create();
 		m_renderer->Init(
 			m_window->GetNativeHandle(),
 			m_window->GetWidth(),
 			m_window->GetHeight());
+
+		// State chain: Loading (2s) - MainMenu (3s auto) - Gameplay - GamePause
+		auto makePause = []() -> std::shared_ptr<IGameState>
+			{
+				return std::make_shared<GamePauseState>();
+			};
+
+		auto makeGameplay = [makePause]() -> std::shared_ptr<IGameState>
+			{
+				return std::make_shared<GameplayState>(makePause);  // inject factory
+			};
+
+		auto makeMainMenu = [makeGameplay]() -> std::shared_ptr<IGameState>
+			{
+				return std::make_shared<MainMenuState>(makeGameplay);
+			};
+
+		StateContext ctx{ m_renderer.get() };
+		m_stateManager.Init(
+			std::make_shared<LoadingState>(makeMainMenu, 2.0f), ctx);
 	}
 
 	Application::~Application()
@@ -42,8 +64,21 @@ namespace UwU_Engine
 			float b = (sinf(t * 2.0f + 4.19f) + 1.0f) * 0.5f; 
 			m_renderer->SetClearColor(r * 0.3f, g * 0.3f, b * 0.3f);
 
+			float dt = m_timer.DeltaTime();
+
+			// Build context fresh each frame — renderer pointer may be
+			// reseated after a future hot-reload or device reset.
+			StateContext ctx{ m_renderer.get() };
+
+			// Update states — returns false if stack is empty → quit
+			if (!m_stateManager.Update(ctx, dt))
+			{
+				m_isRunning = false;
+				break;
+			}
+
 			m_renderer->BeginFrame();
-			// draw calls go here later
+			m_stateManager.Render(ctx);
 			m_renderer->EndFrame();
 
 			ShowStats();
@@ -62,17 +97,23 @@ namespace UwU_Engine
 		d.Dispatch<WindowMaximizeEvent>(std::bind(&Application::OnWindowMaximize, this, std::placeholders::_1), EventType::WindowMaximize);
 		d.Dispatch<WindowRestoreEvent>(std::bind(&Application::OnWindowRestore, this, std::placeholders::_1), EventType::WindowRestore);
 		d.Dispatch<WindowResizeEvent>(std::bind(&Application::OnWindowResize, this, std::placeholders::_1), EventType::WindowResize);
+
+		if (!e.Handled)
+		{
+			StateContext ctx{ m_renderer.get() };
+			m_stateManager.OnEvent(ctx, e);
+		}
 	}
 
 	void Application::OnWindowClose(WindowCloseEvent& e)
 	{
-		UWU_ENGINE_INFO("Window closed � stopping");
+		UWU_ENGINE_INFO("Window closed — stopping");
 		m_isRunning = false;
 	}
 
 	void Application::OnWindowMinimize(WindowMinimizeEvent& e)
 	{
-		UWU_ENGINE_INFO("Window minimized � pausing render");
+		UWU_ENGINE_INFO("Window minimized — pausing render");
 		m_minimized = true;
 		m_timer.Pause();
 	}

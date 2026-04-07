@@ -1,6 +1,7 @@
 #include "uwupch.h"
 #include "Win32Window.h"
 #include "Engine/Events/WindowEvents.h"
+#include "Engine/Events/KeyboardEvents.h"
 namespace UwU_Engine
 {
     Win32Window::Win32Window() {
@@ -199,6 +200,19 @@ namespace UwU_Engine
                         break;
                     }
                     }
+                    return 0;
+                }
+
+                case WM_KEYDOWN:
+                {
+                    KeyPressedEvent e(static_cast<int>(wParam));
+                    window->m_eventCallback(e);
+                    return 0;
+                }
+                case WM_KEYUP:
+                {
+                    KeyReleasedEvent e(static_cast<int>(wParam));
+                    window->m_eventCallback(e);
                     return 0;
                 }
 

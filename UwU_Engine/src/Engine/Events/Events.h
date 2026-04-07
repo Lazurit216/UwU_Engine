@@ -10,7 +10,10 @@ namespace UwU_Engine
         WindowMinimize,
         WindowMaximize,
         WindowRestore,
-        WindowResize
+        WindowResize,
+
+        KeyPressed,
+        KeyReleased
     };
 
     class UWU_API Event
@@ -26,7 +29,7 @@ namespace UwU_Engine
     //   EventDispatcher d(event);
     //   d.Dispatch<WindowResizeEvent>(
     //       std::bind(&Application::OnWindowResize, this, std::placeholders::_1), EventType::WindowResize);
-    class EventDispatcher
+    class UWU_API EventDispatcher
     {
     public:
         explicit EventDispatcher(Event& event) : m_event(event) {}

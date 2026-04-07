@@ -26,8 +26,12 @@ namespace UwU_Engine
         virtual ~IRenderer() = default;
 
         //Lifecycle
+
         virtual bool Init(void* windowHandle, uint32_t width, uint32_t height,
             const RendererConfig& cfg = {}) = 0;
+
+        static std::unique_ptr<IRenderer> Create();
+
         virtual void Shutdown() = 0;
         virtual void OnResize(uint32_t width, uint32_t height) = 0;
 

@@ -5,6 +5,7 @@
 #include "GameTimer.h"
 #include "Renderer/IRenderer.h"
 #include "Events/WindowEvents.h"
+#include "GameState/GameStateManager.h" 
 
 namespace UwU_Engine
 {
@@ -31,8 +32,10 @@ namespace UwU_Engine
 		bool m_isRunning = true;
 		bool m_minimized = false;
 		std::unique_ptr<Window> m_window;
-		GameTimer m_timer;
 		std::unique_ptr<IRenderer> m_renderer;
+		GameTimer m_timer;
+		GameStateManager m_stateManager;
+
 	};
 
 	//To be defined in CLIENT
