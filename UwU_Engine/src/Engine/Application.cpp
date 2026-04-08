@@ -4,8 +4,14 @@
 #include "GameState/States/MainMenuState.h"
 #include "GameState/States/GameplayState.h"
 #include "GameState/States/GamePauseState.h"
+#include "Renderer/DirectX12/DX12Renderer.h" 
 namespace UwU_Engine 
 {
+	static DX12Renderer* AsDX12(IRenderer* r)
+	{
+		return static_cast<DX12Renderer*>(r);
+	}
+
 	Application::Application()
 	{
 		m_window = std::unique_ptr<Window>(Window::Create({ 1280, 720, "UwU Engine" }));
@@ -17,6 +23,14 @@ namespace UwU_Engine
 			m_window->GetNativeHandle(),
 			m_window->GetWidth(),
 			m_window->GetHeight());
+
+		auto* dx12 = static_cast<DX12Renderer*>(m_renderer.get());
+		m_triangle = std::make_unique<DX12Triangle>();
+		if (!m_triangle->Init(dx12))
+		{
+			UWU_ENGINE_ERROR("Triangle init failed — rendering without geometry");
+			m_triangle.reset(); // null = Draw() will be skipped safely
+		}
 
 		// State chain: Loading (2s) - MainMenu (3s auto) - Gameplay - GamePause
 		auto makePause = []() -> std::shared_ptr<IGameState>
@@ -41,8 +55,8 @@ namespace UwU_Engine
 
 	Application::~Application()
 	{
-		if (m_renderer)
-			m_renderer->Shutdown();
+		if (m_triangle) m_triangle->Shutdown();
+		if (m_renderer) m_renderer->Shutdown();
 	}
 
 	void Application::Run()
@@ -78,7 +92,14 @@ namespace UwU_Engine
 			}
 
 			m_renderer->BeginFrame();
+
+			if (m_triangle)
+			{
+				auto* dx12 = static_cast<DX12Renderer*>(m_renderer.get());
+				m_triangle->Draw(dx12->GetCommandList());
+			}
 			m_stateManager.Render(ctx);
+
 			m_renderer->EndFrame();
 
 			ShowStats();

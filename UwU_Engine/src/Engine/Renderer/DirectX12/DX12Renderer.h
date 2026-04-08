@@ -86,7 +86,7 @@ namespace UwU_Engine
         D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView()     const;
         ID3D12Resource* CurrentBackBuffer()     const;
 
-        // Members
+    private:
         static constexpr uint32_t kSwapChainBuffers = 2;
 
         HWND                    m_hwnd = nullptr;

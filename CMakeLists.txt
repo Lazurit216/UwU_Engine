@@ -28,7 +28,6 @@ message(STATUS "CMAKE_GENERATOR_PLATFORM = ${CMAKE_GENERATOR_PLATFORM}")
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>-${PLATFORM}")
 set(INT_DIR "${CMAKE_SOURCE_DIR}/bin-int/$<CONFIG>-${PLATFORM}")
 
-
 add_subdirectory(UwU_Engine)
 add_subdirectory(Sandbox)
 
