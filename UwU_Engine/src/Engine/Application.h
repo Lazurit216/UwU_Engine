@@ -15,11 +15,21 @@ namespace UwU_Engine
 {
 	struct WindowContext
 	{
-		Window* window = nullptr;
-		std::unique_ptr<IRenderer> renderer;
-		std::unique_ptr<DX12Triangle> triangle;
+		Window* window = nullptr;           // сырой указатель (не владеем)
+		std::unique_ptr<IRenderer> renderer;                   // владеем
+		std::unique_ptr<DX12Triangle> triangle;                // владеем
+
 		bool minimized = false;
 		bool active = true;
+
+		// === Важно: явно разрешаем перемещение, запрещаем копирование ===
+		WindowContext() = default;
+
+		WindowContext(const WindowContext&) = delete;                    // запрещаем копирование
+		WindowContext& operator=(const WindowContext&) = delete;
+
+		WindowContext(WindowContext&&) noexcept = default;               // разрешаем перемещение
+		WindowContext& operator=(WindowContext&&) noexcept = default;
 	};
 
 	class UWU_API Application

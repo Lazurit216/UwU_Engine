@@ -66,7 +66,7 @@ namespace UwU_Engine
 	void Application::RegisterContext(WindowContext&& ctx)
 	{
 		int idx = static_cast<int>(m_contexts.size());
-		m_contexts.push_back(std::move(ctx));
+		m_contexts.emplace_back(std::move(ctx));// push_back(std::move(ctx));
 		BindContextEvents(m_contexts.back(), idx);
 		UWU_ENGINE_INFO("[App] Context {} registered", idx);
 	}

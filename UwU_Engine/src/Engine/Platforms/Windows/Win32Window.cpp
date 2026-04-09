@@ -112,7 +112,10 @@ namespace UwU_Engine
             DispatchMessageW(&msg);
         }
     }
+    void Win32Window::SwapBuffers()
+    {
 
+    }
     void Win32Window::SetTitle(const std::string& title)
     {
         m_title = title;

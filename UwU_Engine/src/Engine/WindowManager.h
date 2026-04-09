@@ -26,5 +26,10 @@ namespace UwU_Engine
 
     private:
         std::vector<std::unique_ptr<Window>> m_windows;
+
+        WindowManager(const WindowManager&) = delete;
+        WindowManager& operator=(const WindowManager&) = delete;
+        WindowManager(WindowManager&&) noexcept = default;
+        WindowManager& operator=(WindowManager&&) noexcept = default;
     };
 }

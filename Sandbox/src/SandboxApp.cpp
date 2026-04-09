@@ -29,7 +29,7 @@ protected:
         DX12Renderer* r0Raw = r0.get();           // save raw ptr before move
 
         TriangleDesc d0;
-        d0.ShaderPath = L"Shaders/Color.hlsl";
+        d0.ShaderPath = L"Assets/Shaders/Color.hlsl";
         d0.Vertices = { {
             {{ 0.0f,  0.5f, 0.0f }, { 1.f, 0.f, 0.f }},  // top   red
             {{ 0.5f, -0.5f, 0.0f }, { 0.f, 1.f, 0.f }},  // right green
@@ -58,7 +58,7 @@ protected:
         r1->SetClearColor(0.15f, 0.07f, 0.03f);  // warm dark brown
 
         TriangleDesc d1;
-        d1.ShaderPath = L"Shaders/Color.hlsl";
+        d1.ShaderPath = L"Engine\\Assets\\Shaders\\Color.hlsl";
         d1.Vertices = { {
             {{ 0.0f,  0.6f, 0.0f }, { 1.f, 1.f, 0.f }},  // top   yellow
             {{ 0.6f, -0.4f, 0.0f }, { 1.f, 0.5f, 0.f }}, // right orange

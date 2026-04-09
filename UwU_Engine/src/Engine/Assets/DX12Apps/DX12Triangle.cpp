@@ -18,10 +18,26 @@ namespace UwU_Engine
 
         ID3D12Device* device = renderer->GetDevice();
 
-        if (!CreateRootSignature(device))          return false;
-        if (!BuildShadersAndInputLayout(desc))     return false;
-        if (!BuildGeometry(device, desc))          return false;
-        if (!BuildPSO(device))                     return false;
+        if (!CreateRootSignature(device))
+        {
+            UWU_ENGINE_ERROR("[DX12Triangle] Failed to create root signature!");
+            return false;
+        }
+        if (!BuildShadersAndInputLayout(desc))
+        {
+            UWU_ENGINE_ERROR("[DX12Triangle] Failed to build shared and input layout!");
+            return false;
+        }
+        if (!BuildGeometry(device, desc))
+        {
+            UWU_ENGINE_ERROR("[DX12Triangle] Failed to build geometry!");
+            return false;
+        }
+        if (!BuildPSO(device))
+        {
+            UWU_ENGINE_ERROR("[DX12Triangle] Failed to build PSO!");
+            return false;
+        }
 
         m_ready = true;
         UWU_ENGINE_INFO("[DX12Triangle] Initialized");
@@ -79,8 +95,8 @@ namespace UwU_Engine
     bool DX12Triangle::BuildShadersAndInputLayout(const TriangleDesc& desc)
     {
         // Load both VS and PS from the same .hlsl file
-        if (!m_vs.CompileFromFile(desc.ShaderPath, "VS", "vs_5_0")) return false;
-        if (!m_ps.CompileFromFile(desc.ShaderPath, "PS", "ps_5_0")) return false;
+        if (!m_vs.CompileFromFile(L"Engine/Assets/Shaders/Color.hlsl", "VS", "vs_5_0")) return false;
+        if (!m_ps.CompileFromFile(L"Engine/Assets/Shaders/Color.hlsl", "PS", "ps_5_0")) return false;
 
         // Must match TriangleVertex layout exactly:
         // Position(12 bytes) + Color(12 bytes) = 24 bytes total

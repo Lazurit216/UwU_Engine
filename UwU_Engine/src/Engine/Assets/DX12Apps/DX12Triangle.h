@@ -24,13 +24,13 @@ namespace UwU_Engine
             {{-0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }}, // left  — blue
         } };
 
-        std::wstring ShaderPath = L"Shaders/Triangle.hlsl";
+        std::wstring ShaderPath = L"Engine/Assets/Shaders/Color.hlsl";
     };
 
     // Luna-style test drawable.
     // Owns geometry (simple VB/IB), shaders, PSO and root signature.
     // NOT a renderer — takes DX12Renderer* for device access only.
-    class DX12Triangle
+    class UWU_API DX12Triangle
     {
     public:
         bool Init(DX12Renderer* renderer, const TriangleDesc& desc = {});

@@ -1,5 +1,4 @@
-﻿// Engine/Window/WindowManager.cpp
-#include "uwupch.h"
+﻿#include "uwupch.h"
 #include "WindowManager.h"
 #include "Platforms/Windows/Win32Window.h"
 
