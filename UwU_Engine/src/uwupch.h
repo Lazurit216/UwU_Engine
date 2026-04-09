@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <algorithm>
 #include <array>
@@ -19,6 +19,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <xmemory>
+#include <xutility>
 
 #include "Engine/Logger.h"
 //#include "Engine/Window.h"

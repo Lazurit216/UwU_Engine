@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 // Manages a stack of game states.
 //
 // Key design: transitions requested during Update() are DEFERRED -
@@ -21,14 +21,14 @@ namespace UwU_Engine
         // Push the very first state before the main loop starts.
         void Init(std::shared_ptr<IGameState> initialState, const StateContext& ctx);
 
-        // Call once per frame — applies any pending transition, then calls
+        // Call once per frame â€” applies any pending transition, then calls
         // Update() on the top state.
         // Returns false if the stack is empty (signal to quit).
         bool Update(const StateContext& ctx, float dt);
 
         void OnEvent(const StateContext& ctx, Event& e);
 
-        // Call once per frame — calls Render() on the active state.
+        // Call once per frame â€” calls Render() on the active state.
         void Render(const StateContext& ctx);
 
         // True while at least one state is on the stack.
@@ -43,7 +43,7 @@ namespace UwU_Engine
         std::vector<std::shared_ptr<IGameState>> m_stack;
         StateContext                             m_ctx;
 
-        // Transition requested by the active state — applied next frame.
+        // Transition requested by the active state â€” applied next frame.
         std::optional<StateTransition>           m_pending;
     };
 

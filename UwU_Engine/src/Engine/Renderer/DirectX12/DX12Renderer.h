@@ -1,20 +1,4 @@
 ﻿#pragma once
-// Concrete DirectX 12 implementation of IRenderer.
-// This prototype implements:
-//   - Debug layer (Debug builds)
-//   - DXGI factory + adapter enumeration
-//   - D3D12 device
-//   - Command queue, allocator, list
-//   - Swap chain (double or triple buffered)
-//   - RTV descriptor heap + render target views
-//   - DSV descriptor heap + depth-stencil buffer
-//   - GPU-CPU fence synchronization
-//   - Per-frame clear to configurable color
-//
-// Not implemented (intentional prototype scope):
-//   - PSO, root signature, vertex buffers (belong to game-side geometry)
-//   - ImGui DX12 backend (integrate after this compiles clean)
-//   - MSAA (add later by setting SampleDesc in PSO)
 
 #include "Engine/Renderer/IRenderer.h"
 #include "Engine/Core.h"
@@ -28,8 +12,6 @@ namespace UwU_Engine
 {
 
     using Microsoft::WRL::ComPtr;
-    //using namespace DirectX;
-    //using namespace DirectX::PackedVector;
 
     class UWU_API DX12Renderer : public IRenderer
     {
@@ -40,6 +22,10 @@ namespace UwU_Engine
         // IRenderer interface
         bool Init(void* windowHandle, uint32_t width, uint32_t height,
             const RendererConfig& cfg = {}) override;
+        bool InitShared(void* windowHandle, uint32_t width, uint32_t height,
+            ID3D12Device* device, IDXGIFactory6* factory,
+            bool vsync = true);
+
         void Shutdown()   override;
         void OnResize(uint32_t width, uint32_t height) override;
 
@@ -64,9 +50,11 @@ namespace UwU_Engine
         // Returns nullptr if not yet initialized.
         ID3D12Device* GetDevice()      const { return m_device.Get(); }
         ID3D12GraphicsCommandList* GetCommandList() const { return m_commandList.Get(); }
+        IDXGIFactory6* GetFactory()     const { return m_factory.Get(); }
 
     private:
         //Init helpers
+        bool InitSwapChainAndResources(HWND hwnd, bool vsync);
         bool CreateDebugLayer();
         bool CreateFactory();
         bool CreateDevice();
@@ -92,7 +80,9 @@ namespace UwU_Engine
         HWND                    m_hwnd = nullptr;
         uint32_t                m_width = 0;
         uint32_t                m_height = 0;
-        bool                    m_ready = false; 
+        bool                    m_ready = false;
+        bool                    m_vsync = true;
+        bool                    m_ownsDevice = false;
         DirectX::XMVECTORF32 m_clearColor = { DirectX::Colors::Black };// { 0.1f, 0.1f, 0.15f, 1.0f };
 
         DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;

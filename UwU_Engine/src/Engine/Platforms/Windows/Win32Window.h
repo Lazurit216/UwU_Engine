@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Core.h"
 #include "Engine/Window.h"
 
@@ -14,12 +14,13 @@ namespace UwU_Engine
         void Show() override;
         void Hide() override;
         void Close() override;
-        bool ShouldClose() const override { return m_shouldClose; }
         void PollEvents() override;
         void SwapBuffers() override; 
 
+        bool ShouldClose() const override { return m_shouldClose; }
         int GetWidth() const override { return m_width; }
         int GetHeight() const override { return m_height; }
+        std::string GetTitle()       const override { return m_title; }
 
         void* GetNativeHandle() const override { return (void*)m_hwnd; }
 
@@ -31,15 +32,14 @@ namespace UwU_Engine
         void Minimize() override;
         void Maximize() override;
         void Restore() override;
-
     private:
-        HWND m_hwnd = nullptr;
-        HINSTANCE m_hInstance = nullptr;
-        std::wstring m_windowClassName;
-
         static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
         bool RegisterWindowClass();
         HWND CreateWindowHandle(int width, int height, const std::wstring& title, bool fullscreen);
+    private:
+        HWND m_hwnd = nullptr;
+        HINSTANCE m_hInstance = nullptr;
+        std::wstring m_windowClassName; 
     };
 }

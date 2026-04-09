@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Engine/Renderer/DirectX12/DX12Shader.h"
 #include "Engine/Renderer/DirectX12/DX12PipelineState.h"
 
@@ -7,7 +7,7 @@ namespace UwU_Engine
     class DX12Renderer;
 
     // Simple vertex used only by DX12Triangle.
-    // Separate from DX12MeshGeometry::Vertex — no Normal/TexC needed here.
+    // Separate from DX12MeshGeometry::Vertex â€” no Normal/TexC needed here.
     struct TriangleVertex
     {
         DirectX::XMFLOAT3 Position;
@@ -17,11 +17,11 @@ namespace UwU_Engine
     // All parameters the caller can customize before Init().
     struct TriangleDesc
     {
-        // Vertex positions and colors — change these to get different triangles
+        // Vertex positions and colors â€” change these to get different triangles
         std::array<TriangleVertex, 3> Vertices = { {
-            {{ 0.0f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }}, // top   — red
-            {{ 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }}, // right — green
-            {{-0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }}, // left  — blue
+            {{ 0.0f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }}, // top   â€” red
+            {{ 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }}, // right â€” green
+            {{-0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }}, // left  â€” blue
         } };
 
         std::wstring ShaderPath = L"Shaders/Triangle.hlsl";
@@ -29,7 +29,7 @@ namespace UwU_Engine
 
     // Luna-style test drawable.
     // Owns geometry (simple VB/IB), shaders, PSO and root signature.
-    // NOT a renderer — takes DX12Renderer* for device access only.
+    // NOT a renderer â€” takes DX12Renderer* for device access only.
     class DX12Triangle
     {
     public:

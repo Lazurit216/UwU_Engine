@@ -1,4 +1,4 @@
-#include "uwupch.h"
+ï»¿#include "uwupch.h"
 #include "GameplayState.h"
 //#include "Engine/Renderer/IRenderer.h"
 
@@ -49,7 +49,7 @@ namespace UwU_Engine
     {
         if (ke.GetKeyCode() == VK_ESCAPE && m_pauseFactory)
         {
-            UWU_ENGINE_INFO("[Gameplay] Escape — pushing pause");
+            UWU_ENGINE_INFO("[Gameplay] Escape â€” pushing pause");
             m_pendingPush = m_pauseFactory();  // factory creates whatever pause state
             ke.Handled = true;
         }
@@ -80,7 +80,7 @@ namespace UwU_Engine
         }
 
 
-        // No transition — stay in gameplay until the window closes.
+        // No transition â€” stay in gameplay until the window closes.
         return StateTransition::None();
     }
 
