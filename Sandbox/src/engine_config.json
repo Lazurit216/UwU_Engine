@@ -1,0 +1,25 @@
+{
+  "engine": {
+    "vsync": true,
+    "logLevel": "Trace"
+  },
+  "windows": {
+    "primary": {
+      "width": 1280,
+      "height": 720,
+      "title": "UwU Engine - Primary",
+      "bgColor": [ 0.55, 0.05, 0.15 ]
+    },
+    "secondary": {
+      "width": 800,
+      "height": 600,
+      "title": "UwU Engine - Secondary",
+      "bgColor": [ 0.15, 0.07, 0.03 ]
+    }
+  },
+  "input": {
+    "moveSpeed": 0.6,
+    "scaleSpeed": 0.5,
+    "rotateSpeed": 1.8
+  }
+}

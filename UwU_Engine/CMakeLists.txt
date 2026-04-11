@@ -5,12 +5,27 @@ file(GLOB_RECURSE ENGINE_SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
-#file(GLOB_RECURSE SHADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hlsl")
-#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Shaders" FILES ${SHADER_FILES})
+file(GLOB_RECURSE SHADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hlsl")
+foreach(SHADER ${SHADER_FILES})
+    set_source_files_properties(${SHADER} PROPERTIES
+        VS_TOOL_OVERRIDE "None"   # tells MSBuild: display only, no compile step
+    )
+endforeach()
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Shaders" FILES ${SHADER_FILES})
+
+file(GLOB_RECURSE JSON_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../Sandbox/*.json")
+foreach(JSON ${JSON_FILES})
+    set_source_files_properties(${JSON} PROPERTIES
+        VS_TOOL_OVERRIDE "None"
+    )
+endforeach()
+source_group("Config" FILES ${JSON_FILES})
 
 message(STATUS "ENGINE_SOURCES list  = ${ENGINE_SOURCES}")
+message(STATUS "SHADERS list  = ${SHADER_FILES}")
+message(STATUS "CONFIGS list  = ${JSON_FILES}")
 
-add_library(UwU_Engine SHARED ${ENGINE_SOURCES})
+add_library(UwU_Engine SHARED ${ENGINE_SOURCES} ${SHADER_FILES} ${JSON_FILES})
 
 set_target_properties(UwU_Engine PROPERTIES
     FOLDER "UwU Engine" 

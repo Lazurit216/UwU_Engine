@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Core.h"
 #include "Window.h"
@@ -6,6 +6,8 @@
 #include "Renderer/IRenderer.h"
 #include "Events/WindowEvents.h"
 #include "Events/KeyboardEvents.h"
+#include "Events/MouseEvents.h" 
+#include "Input/InputManager.h"  
 #include "GameState/GameStateManager.h"
 #include "WindowManager.h"
 
@@ -15,20 +17,18 @@ namespace UwU_Engine
 {
 	struct WindowContext
 	{
-		Window* window = nullptr;           // сырой указатель (не владеем)
-		std::unique_ptr<IRenderer> renderer;                   // владеем
-		std::unique_ptr<DX12Triangle> triangle;                // владеем
+		InputManager input;
+		Window* window = nullptr;           
+		std::unique_ptr<IRenderer> renderer;       
+		std::unique_ptr<DX12Triangle> triangle;           
 
 		bool minimized = false;
 		bool active = true;
 
-		// === Важно: явно разрешаем перемещение, запрещаем копирование ===
 		WindowContext() = default;
-
-		WindowContext(const WindowContext&) = delete;                    // запрещаем копирование
+		WindowContext(const WindowContext&) = delete;            
 		WindowContext& operator=(const WindowContext&) = delete;
-
-		WindowContext(WindowContext&&) noexcept = default;               // разрешаем перемещение
+		WindowContext(WindowContext&&) noexcept = default;   
 		WindowContext& operator=(WindowContext&&) noexcept = default;
 	};
 

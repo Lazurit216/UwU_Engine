@@ -1,3 +1,8 @@
+cbuffer cbTransform : register(b0)
+{
+    row_major float4x4 gWorld;
+}
+
 struct VertexIn
 {
     float3 PosL : POSITION;
@@ -13,7 +18,7 @@ struct VertexOut
 VertexOut VS(VertexIn vin)
 {
     VertexOut vout;
-    vout.PosH = float4(vin.PosL, 1.0f); // already in NDC for this test
+    vout.PosH = mul(float4(vin.PosL, 1.0f), gWorld);
     vout.Color = vin.Color;
     return vout;
 }

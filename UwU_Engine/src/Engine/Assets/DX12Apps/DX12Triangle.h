@@ -6,15 +6,29 @@ namespace UwU_Engine
 {
     class DX12Renderer;
 
-    // Simple vertex used only by DX12Triangle.
-    // Separate from DX12MeshGeometry::Vertex — no Normal/TexC needed here.
     struct TriangleVertex
     {
         DirectX::XMFLOAT3 Position;
         DirectX::XMFLOAT3 Color;
     };
 
-    // All parameters the caller can customize before Init().
+    struct ObjectTransform
+    {
+        float x = 0.0f;   // horizontal offset  [-1.8 .. 1.8]
+        float y = 0.0f;   // vertical offset    [-1.8 .. 1.8]
+        float scale = 1.0f;   // uniform scale      [0.1 .. 5.0]
+        float rotation = 0.0f;   // radians, CCW
+
+        // Scale × RotateZ × Translate — passed to the vertex shader.
+        DirectX::XMMATRIX ToMatrix() const
+        {
+            using namespace DirectX;
+            return XMMatrixScaling(scale, scale, 1.f)
+                * XMMatrixRotationZ(rotation)
+                * XMMatrixTranslation(x, y, 0.f);
+        }
+    };
+
     struct TriangleDesc
     {
         // Vertex positions and colors — change these to get different triangles
@@ -38,23 +52,33 @@ namespace UwU_Engine
         void Shutdown();
         bool IsReady() const { return m_ready; }
 
+        void SetTransform(const ObjectTransform& t) { m_transform = t; }
+        const ObjectTransform& GetTransform() const { return m_transform; }
+
     private:
         bool CreateRootSignature(ID3D12Device* device);
         bool BuildShadersAndInputLayout(const TriangleDesc& desc);
         bool BuildGeometry(ID3D12Device* device, const TriangleDesc& desc);
+        bool BuildConstantBuffer(ID3D12Device* device);
         bool BuildPSO(ID3D12Device* device);
 
+    private:
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
-        Microsoft::WRL::ComPtr<ID3D12Resource>      m_vertexBuffer;
-        Microsoft::WRL::ComPtr<ID3D12Resource>      m_indexBuffer;
-        D3D12_VERTEX_BUFFER_VIEW                    m_vbView{};
-        D3D12_INDEX_BUFFER_VIEW                     m_ibView{};
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer;
+        D3D12_VERTEX_BUFFER_VIEW m_vbView{};
+        D3D12_INDEX_BUFFER_VIEW m_ibView{};
 
-        DX12Shader                           m_vs;
-        DX12Shader                           m_ps;
-        DX12PipelineState                    m_pso;
+        DX12Shader m_vs;
+        DX12Shader m_ps;
+        DX12PipelineState m_pso;
         std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputLayout;
 
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_cbResource;
+        void* m_cbMapped = nullptr;
+        D3D12_GPU_VIRTUAL_ADDRESS m_cbGPUAddress = 0;
+
+        ObjectTransform m_transform;
         bool m_ready = false;
     };
 }

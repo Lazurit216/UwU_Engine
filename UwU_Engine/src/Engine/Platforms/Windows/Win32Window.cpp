@@ -2,6 +2,7 @@
 #include "uwupch.h"
 #include "Engine/Events/WindowEvents.h"
 #include "Engine/Events/KeyboardEvents.h"
+#include "Engine/Events/MouseEvents.h"  
 
 namespace UwU_Engine
 {
@@ -211,6 +212,43 @@ namespace UwU_Engine
             self->m_eventCallback(e);
             return 0;
         }
+
+        case WM_LBUTTONDOWN:
+        {
+            SetCapture(hwnd);  // track mouse even when dragged outside window
+            MouseButtonPressedEvent e(MouseButton::Left,
+                static_cast<float>(LOWORD(lParam)), static_cast<float>(HIWORD(lParam)));
+            self->m_eventCallback(e); return 0;
+        }
+        case WM_LBUTTONUP:
+        {
+            ReleaseCapture();
+            MouseButtonReleasedEvent e(MouseButton::Left,
+                static_cast<float>(LOWORD(lParam)), static_cast<float>(HIWORD(lParam)));
+            self->m_eventCallback(e); return 0;
+        }
+        case WM_RBUTTONDOWN:
+        {
+            SetCapture(hwnd);
+            MouseButtonPressedEvent e(MouseButton::Right,
+                static_cast<float>(LOWORD(lParam)), static_cast<float>(HIWORD(lParam)));
+            self->m_eventCallback(e); return 0;
+        }
+        case WM_RBUTTONUP:
+        {
+            ReleaseCapture();
+            MouseButtonReleasedEvent e(MouseButton::Right,
+                static_cast<float>(LOWORD(lParam)), static_cast<float>(HIWORD(lParam)));
+            self->m_eventCallback(e); return 0;
+        }
+
+        case WM_MOUSEMOVE:
+        {
+            MouseMovedEvent e(static_cast<float>(LOWORD(lParam)),
+                static_cast<float>(HIWORD(lParam)));
+            self->m_eventCallback(e); return 0;
+        }
+
         }
 
         return DefWindowProcW(hwnd, msg, wParam, lParam);

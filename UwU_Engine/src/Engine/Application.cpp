@@ -1,4 +1,4 @@
-﻿#include "uwupch.h"
+#include "uwupch.h"
 #include "Application.h"
 #include "GameState/States/LoadingState.h"
 #include "GameState/States/MainMenuState.h"
@@ -22,13 +22,13 @@ namespace UwU_Engine
 		UWU_ENGINE_INFO("Application is running...");
 		if (!OnInit())
 		{
-			UWU_ENGINE_ERROR("OnInit() failed — aborting");
+			UWU_ENGINE_ERROR("OnInit() failed - aborting");
 			return;
 		}
 
 		if (m_contexts.empty())
 		{
-			UWU_ENGINE_ERROR("No WindowContexts registered — aborting");
+			UWU_ENGINE_ERROR("No WindowContexts registered - aborting");
 			return;
 		}
 
@@ -37,7 +37,10 @@ namespace UwU_Engine
 
 		while (m_isRunning)
 		{
+			for (auto& ctx : m_contexts)
+				ctx.input.BeginFrame();
 			m_windowManager.PollAll();
+
 			m_timer.Tick();
 			float dt = m_timer.DeltaTime();
 
@@ -45,7 +48,7 @@ namespace UwU_Engine
 
 			if (!m_contexts.empty() && m_contexts[0].active)
 			{
-				StateContext sCtx{ m_contexts[0].renderer.get() };
+				StateContext sCtx{ m_contexts[0].renderer.get(), &m_contexts[0].input };
 				if (!m_stateManager.Update(sCtx, dt))
 				{
 					m_isRunning = false;
@@ -78,7 +81,7 @@ namespace UwU_Engine
 			UWU_ENGINE_ERROR("[App] InitStateManager: no contexts registered yet");
 			return;
 		}
-		StateContext ctx{ m_contexts[0].renderer.get() };
+		StateContext ctx{ m_contexts[0].renderer.get(), &m_contexts[0].input };
 		m_stateManager.Init(std::move(initialState), ctx);
 	}
 
@@ -103,7 +106,7 @@ namespace UwU_Engine
 			ctx.triangle->Draw(dx12->GetCommandList());
 		}
 
-		StateContext sCtx{ ctx.renderer.get() };
+		StateContext sCtx{ ctx.renderer.get(), nullptr };
 		m_stateManager.Render(sCtx);
 
 		ctx.renderer->EndFrame();
@@ -120,10 +123,11 @@ namespace UwU_Engine
 		d.Dispatch<WindowRestoreEvent>(std::bind(&Application::OnWindowRestore, this, std::placeholders::_1, idx), EventType::WindowRestore);
 		d.Dispatch<WindowResizeEvent>(std::bind(&Application::OnWindowResize, this, std::placeholders::_1, idx), EventType::WindowResize);
 
-		// Unhandled events go to the state manager (primary window only)
+		m_contexts[idx].input.OnEvent(e);
+
 		if (!e.Handled && idx == 0 && !m_contexts.empty())
 		{
-			StateContext sCtx{ m_contexts[0].renderer.get() };
+			StateContext sCtx{ m_contexts[0].renderer.get(), &m_contexts[0].input };
 			m_stateManager.OnEvent(sCtx, e);
 		}
 	}
@@ -133,8 +137,6 @@ namespace UwU_Engine
 		UWU_ENGINE_INFO("[App] Window {} closed", idx);
 		m_contexts[idx].active = false;
 
-		// Closing the primary window quits everything.
-		// Secondary windows can be closed independently.
 		if (idx == 0)
 		{
 			m_isRunning = false;
@@ -170,7 +172,6 @@ namespace UwU_Engine
 
 	void Application::ShowStats()
 	{
-		// Update title once per second to avoid spam
 		static double timeAccum = 0.0;
 		timeAccum += m_timer.DeltaTimeD();
 
@@ -178,8 +179,6 @@ namespace UwU_Engine
 		{
 			float fps = m_timer.FPS();
 			float dtMs = m_timer.DeltaTime() * 1000.0f;
-
-			//UWU_ENGINE_TRACE(std::format("FPS: {} | dt: {} ms", fps, dtMs));
 
 			std::string stats = " |  FPS: "
 				+ std::to_string(static_cast<int>(fps))

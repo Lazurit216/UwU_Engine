@@ -5,12 +5,18 @@ file(GLOB_RECURSE SANDBOX_SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
-#message(STATUS "SANDBOX_SOURCES list  = ${SANDBOX_SOURCES}")
+file(GLOB_RECURSE SANDBOX_SHADERS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hlsl")
+foreach(SHADER ${SANDBOX_SHADERS})
+    set_source_files_properties(${SHADER} PROPERTIES
+        VS_TOOL_OVERRIDE "None"
+    )
+endforeach()
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Shaders" FILES ${SANDBOX_SHADERS})
 
-add_executable(Sandbox ${SANDBOX_SOURCES})
+add_executable(Sandbox ${SANDBOX_SOURCES} ${SANDBOX_SHADERS})
 
 set_target_properties(Sandbox PROPERTIES
-	FOLDER "Sandbox"
+    FOLDER "Sandbox"
     RUNTIME_OUTPUT_DIRECTORY   "${OUTPUT_DIR}/Sandbox"
     PDB_OUTPUT_DIRECTORY       "${INT_DIR}/Sandbox"
     COMPILE_PDB_OUTPUT_DIRECTORY "${INT_DIR}/Sandbox"
@@ -31,14 +37,20 @@ target_include_directories(Sandbox PRIVATE ${CMAKE_SOURCE_DIR}/UwU_Engine/src)
 target_link_libraries(Sandbox PRIVATE UwU_Engine)
 target_compile_definitions(Sandbox PRIVATE UWU_PLATFORM_WINDOWS)
 
+#Copy shaders to output (runtime compilation via D3DCompileFromFile)
 add_custom_command(TARGET Sandbox POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory 
+    COMMAND ${CMAKE_COMMAND} -E make_directory
         "${OUTPUT_DIR}/Sandbox/Assets/Shaders"
-
-    # Копируем всю папку Shaders с сохранением структуры подпапок
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/Shaders"
         "${OUTPUT_DIR}/Sandbox/Assets/Shaders"
+    COMMENT "Copying shaders to Sandbox output"
+)
 
-    COMMENT "Copying all shaders (including subdirectories) to Sandbox output"
+#Copy engine_config.json next to Sandbox.exe
+add_custom_command(TARGET Sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/engine_config.json"
+        "$<TARGET_FILE_DIR:Sandbox>/engine_config.json"
+    COMMENT "Copying engine_config.json to Sandbox output"
 )

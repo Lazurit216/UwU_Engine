@@ -13,7 +13,11 @@ namespace UwU_Engine
         WindowResize,
 
         KeyPressed,
-        KeyReleased
+        KeyReleased,
+
+        MouseButtonPressed,
+        MouseButtonReleased,
+        MouseMoved
     };
 
     class UWU_API Event
@@ -25,10 +29,6 @@ namespace UwU_Engine
         bool Handled = false;
     };
 
-    // Usage:
-    //   EventDispatcher d(event);
-    //   d.Dispatch<WindowResizeEvent>(
-    //       std::bind(&Application::OnWindowResize, this, std::placeholders::_1), EventType::WindowResize);
     class UWU_API EventDispatcher
     {
     public:
