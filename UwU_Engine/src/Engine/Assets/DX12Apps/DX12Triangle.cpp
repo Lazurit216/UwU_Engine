@@ -94,12 +94,10 @@ namespace UwU_Engine
 
     bool DX12Triangle::BuildShadersAndInputLayout(const TriangleDesc& desc)
     {
-        // Load both VS and PS from the same .hlsl file
-        if (!m_vs.CompileFromFile(L"Engine/Assets/Shaders/Color.hlsl", "VS", "vs_5_0")) return false;
-        if (!m_ps.CompileFromFile(L"Engine/Assets/Shaders/Color.hlsl", "PS", "ps_5_0")) return false;
+        // Use desc.ShaderPath — was hardcoded before
+        if (!m_vs.CompileFromFile(desc.ShaderPath, "VS", "vs_5_0")) return false;
+        if (!m_ps.CompileFromFile(desc.ShaderPath, "PS", "ps_5_0")) return false;
 
-        // Must match TriangleVertex layout exactly:
-        // Position(12 bytes) + Color(12 bytes) = 24 bytes total
         m_inputLayout =
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0,

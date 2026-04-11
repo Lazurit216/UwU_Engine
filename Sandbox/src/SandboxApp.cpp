@@ -17,8 +17,15 @@ public:
 protected:
     bool OnInit() override
     {
+        std::wstring sandboxSrcPath;
+        if (IsDebuggerPresent()) 
+        {
+            UWU_INFO("Is debugger");
+            sandboxSrcPath = L"..\\..\\Sandbox\\src\\";
+        }
+
         // ── Primary window (1280x720, dark blue, RGB triangle) ────────────────
-        Window* win0 = m_windowManager.Create({ 1280, 720, "UwU Engine — Primary" });
+        Window* win0 = m_windowManager.Create({ 1280, 720, "UwU Engine - Primary" });
         if (!win0) return false;
 
         auto r0 = std::make_unique<DX12Renderer>();
@@ -29,14 +36,16 @@ protected:
         DX12Renderer* r0Raw = r0.get();           // save raw ptr before move
 
         TriangleDesc d0;
-        d0.ShaderPath = L"Assets/Shaders/Color.hlsl";
+        d0.ShaderPath = sandboxSrcPath + L"Assets\\Shaders\\Color.hlsl";
+        std::string shaderPathStr1(d0.ShaderPath.begin(), d0.ShaderPath.end());
+        UWU_TRACE("Shaders path: {}", shaderPathStr1);
         d0.Vertices = { {
             {{ 0.0f,  0.5f, 0.0f }, { 1.f, 0.f, 0.f }},  // top   red
             {{ 0.5f, -0.5f, 0.0f }, { 0.f, 1.f, 0.f }},  // right green
             {{-0.5f, -0.5f, 0.0f }, { 0.f, 0.f, 1.f }},  // left  blue
         } };
         auto t0 = std::make_unique<DX12Triangle>();
-        if (!t0->Init(r0Raw, d0)) { UWU_ENGINE_WARN("[Sandbox] triangle0 failed"); t0.reset(); }
+        if (!t0->Init(r0Raw, d0)) { UWU_WARN("triangle0 failed"); t0.reset(); }
 
         WindowContext c0;
         c0.window = win0;
@@ -48,7 +57,7 @@ protected:
         // Reuse the GPU device from renderer0 — no second device allocation.
         auto* sharedDX12 = static_cast<DX12Renderer*>(GetContext(0).renderer.get());
 
-        Window* win1 = m_windowManager.Create({ 800, 600, "UwU Engine — Secondary" });
+        Window* win1 = m_windowManager.Create({ 800, 600, "UwU Engine - Secondary" });
         if (!win1) return false;
 
         auto r1 = std::make_unique<DX12Renderer>();
@@ -58,7 +67,9 @@ protected:
         r1->SetClearColor(0.15f, 0.07f, 0.03f);  // warm dark brown
 
         TriangleDesc d1;
-        d1.ShaderPath = L"Engine\\Assets\\Shaders\\Color.hlsl";
+        d1.ShaderPath = sandboxSrcPath+L"Assets\\Shaders\\Color.hlsl";
+        std::string shaderPathStr2(d1.ShaderPath.begin(), d1.ShaderPath.end());
+        UWU_TRACE("Shaders path: {}", shaderPathStr2);
         d1.Vertices = { {
             {{ 0.0f,  0.6f, 0.0f }, { 1.f, 1.f, 0.f }},  // top   yellow
             {{ 0.6f, -0.4f, 0.0f }, { 1.f, 0.5f, 0.f }}, // right orange

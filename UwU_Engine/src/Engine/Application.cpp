@@ -163,7 +163,7 @@ namespace UwU_Engine
 
 	void Application::OnWindowResize(WindowResizeEvent& e, int idx)
 	{
-		UWU_ENGINE_INFO("[App] Window {} resized -> {}x{}", idx, e.GetWidth(), e.GetHeight());
+		UWU_ENGINE_INFO("[App] Window {} resized - {}x{}", idx, e.GetWidth(), e.GetHeight());
 		if (m_contexts[idx].renderer)
 			m_contexts[idx].renderer->OnResize(e.GetWidth(), e.GetHeight());
 	}
@@ -188,7 +188,7 @@ namespace UwU_Engine
 
 			for (auto& ctx : m_contexts)
 				if (ctx.active && ctx.window)
-					ctx.window->SetTitle(ctx.window->GetTitle() + stats);
+					ctx.window->SetTitle(ctx.window->GetOriginalTitle() + stats);
 			timeAccum = 0.0;
 		}
 	}

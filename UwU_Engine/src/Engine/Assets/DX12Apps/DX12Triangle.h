@@ -24,7 +24,7 @@ namespace UwU_Engine
             {{-0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }}, // left  — blue
         } };
 
-        std::wstring ShaderPath = L"Engine/Assets/Shaders/Color.hlsl";
+        std::wstring ShaderPath = L"Assets/Shaders/Color.hlsl";
     };
 
     // Luna-style test drawable.

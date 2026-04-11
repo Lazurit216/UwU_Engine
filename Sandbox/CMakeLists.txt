@@ -30,3 +30,15 @@ endforeach()
 target_include_directories(Sandbox PRIVATE ${CMAKE_SOURCE_DIR}/UwU_Engine/src)
 target_link_libraries(Sandbox PRIVATE UwU_Engine)
 target_compile_definitions(Sandbox PRIVATE UWU_PLATFORM_WINDOWS)
+
+add_custom_command(TARGET Sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory 
+        "${OUTPUT_DIR}/Sandbox/Assets/Shaders"
+
+    # Копируем всю папку Shaders с сохранением структуры подпапок
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/Shaders"
+        "${OUTPUT_DIR}/Sandbox/Assets/Shaders"
+
+    COMMENT "Copying all shaders (including subdirectories) to Sandbox output"
+)

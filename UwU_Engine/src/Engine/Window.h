@@ -34,7 +34,8 @@ namespace UwU_Engine
 
         virtual int         GetWidth()        const = 0;
         virtual int         GetHeight()       const = 0;
-        virtual std::string GetTitle()        const = 0;  // ← new
+        virtual std::string GetTitle()        const = 0;  
+        virtual std::string GetOriginalTitle()        const = 0;
         virtual void* GetNativeHandle() const = 0;
 
         virtual void SetTitle(const std::string& title) = 0;
@@ -54,6 +55,7 @@ namespace UwU_Engine
         int          m_width = 0;
         int          m_height = 0;
         std::string  m_title;
+        std::string  m_originalTitle;
         EventCallback m_eventCallback;
     };
 }

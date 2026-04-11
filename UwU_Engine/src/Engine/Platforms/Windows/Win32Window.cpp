@@ -29,7 +29,9 @@ namespace UwU_Engine
 
     bool Win32Window::Init(const WindowProps& props)
     {
-        m_title = props.title;
+        m_originalTitle = props.title;
+        m_title = m_originalTitle;
+
         m_width = props.width;
         m_height = props.height;
 

@@ -21,6 +21,7 @@ namespace UwU_Engine
         int GetWidth() const override { return m_width; }
         int GetHeight() const override { return m_height; }
         std::string GetTitle()       const override { return m_title; }
+        std::string GetOriginalTitle()       const override { return m_originalTitle; }
 
         void* GetNativeHandle() const override { return (void*)m_hwnd; }
 
