@@ -1,7 +1,8 @@
-﻿// Engine/Renderer/DirectX12/DX12Renderer.cpp
+// Engine/Renderer/DirectX12/DX12Renderer.cpp
 #include "uwupch.h"
 #include "DX12Renderer.h"
 #include "d3dx12.h"
+#include "Engine/Renderer/IDrawable.h"
 
 #define CHECK_HR(expr)                                                      \
     do {                                                                    \
@@ -82,6 +83,7 @@ namespace UwU_Engine
         UWU_ENGINE_INFO("[DX12] Renderer ready");
         return true;
     }
+
 
     void DX12Renderer::Shutdown()
     {

@@ -7,11 +7,6 @@
 #include "Renderer/DirectX12/DX12Renderer.h" 
 namespace UwU_Engine 
 {
-	static DX12Renderer* AsDX12(IRenderer* r)
-	{
-		return static_cast<DX12Renderer*>(r);
-	}
-
 	Application::Application() = default;
 
 	Application::~Application()
@@ -41,8 +36,17 @@ namespace UwU_Engine
 				ctx.input.BeginFrame();
 			m_windowManager.PollAll();
 
+			// Variable timestep
 			m_timer.Tick();
-			float dt = m_timer.DeltaTime();
+			const float dt = m_timer.DeltaTime();
+
+			// Fixed timestep accumulator
+			m_fixedAccumulator += dt;
+			while (m_fixedAccumulator >= m_fixedStep)
+			{
+				OnFixedUpdate(m_fixedStep);
+				m_fixedAccumulator -= m_fixedStep;
+			}
 
 			OnUpdate(dt);
 
@@ -56,8 +60,8 @@ namespace UwU_Engine
 				}
 			}
 
-			for (auto& ctx : m_contexts)
-				TickContext(ctx);
+			for (int i = 0; i < static_cast<int>(m_contexts.size()); ++i)
+				TickContext(m_contexts[i], i);
 
 			ShowStats();
 		}
@@ -71,14 +75,14 @@ namespace UwU_Engine
 		int idx = static_cast<int>(m_contexts.size());
 		m_contexts.emplace_back(std::move(ctx));// push_back(std::move(ctx));
 		BindContextEvents(m_contexts.back(), idx);
-		UWU_ENGINE_INFO("[App] Context {} registered", idx);
+		UWU_ENGINE_INFO("Context {} registered", idx);
 	}
 
 	void Application::InitStateManager(std::shared_ptr<IGameState> initialState)
 	{
 		if (m_contexts.empty())
 		{
-			UWU_ENGINE_ERROR("[App] InitStateManager: no contexts registered yet");
+			UWU_ENGINE_ERROR("InitStateManager: no contexts registered yet");
 			return;
 		}
 		StateContext ctx{ m_contexts[0].renderer.get(), &m_contexts[0].input };
@@ -93,21 +97,22 @@ namespace UwU_Engine
 			});
 	}
 
-	void Application::TickContext(WindowContext& ctx)
+	void Application::TickContext(WindowContext& ctx, int idx)
 	{
-		if (!ctx.active || ctx.minimized)    return;
+		if (!ctx.active || ctx.minimized)              return;
 		if (!ctx.renderer || !ctx.renderer->IsReady()) return;
 
 		ctx.renderer->BeginFrame();
 
-		if (ctx.triangle)
+		// State system renders only on the primary context
+		if (idx == 0)
 		{
-			auto* dx12 = AsDX12(ctx.renderer.get());
-			ctx.triangle->Draw(dx12->GetCommandList());
+			StateContext sCtx{ ctx.renderer.get(), &ctx.input };
+			m_stateManager.Render(sCtx);
 		}
 
-		StateContext sCtx{ ctx.renderer.get(), nullptr };
-		m_stateManager.Render(sCtx);
+		// Per-context custom geometry hook (secondary triangle, UI, etc.)
+		OnContextRender(idx, ctx.renderer.get());
 
 		ctx.renderer->EndFrame();
 	}

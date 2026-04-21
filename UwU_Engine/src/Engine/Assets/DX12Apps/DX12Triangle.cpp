@@ -1,4 +1,4 @@
-﻿#include "uwupch.h"
+#include "uwupch.h"
 #include "DX12Triangle.h"
 #include "Engine/Renderer/DirectX12/DX12Renderer.h"
 #include "Engine/Renderer/DirectX12/d3dx12.h"
@@ -15,7 +15,7 @@ namespace UwU_Engine
             UWU_ENGINE_ERROR("[DX12Triangle] Renderer is null or not ready");
             return false;
         }
-
+        m_renderer = renderer;
         ID3D12Device* device = renderer->GetDevice();
 
         if (!CreateRootSignature(device)) { UWU_ENGINE_ERROR("[DX12Triangle] Root signature failed");  return false; }
@@ -29,20 +29,28 @@ namespace UwU_Engine
         return true;
     }
 
-    void DX12Triangle::Draw(ID3D12GraphicsCommandList* cmdList) const
+    void DX12Triangle::Draw()
     {
-        if (!m_ready || !cmdList) return;
+        if (!m_ready || !m_renderer) return;
 
-        XMMATRIX world = m_transform.ToMatrix();
+        // Build world matrix from abstract ObjectTransform
+        XMMATRIX world =
+            XMMatrixScaling(m_transform.scale, m_transform.scale, 1.f)
+            * XMMatrixRotationZ(m_transform.rotation)
+            * XMMatrixTranslation(m_transform.x, m_transform.y, 0.f);
+
         memcpy(m_cbMapped, &world, sizeof(XMMATRIX));
 
-        cmdList->SetPipelineState(m_pso.PSO.Get());
-        cmdList->SetGraphicsRootSignature(m_rootSignature.Get());
-        cmdList->SetGraphicsRootConstantBufferView(0, m_cbGPUAddress);
-        cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        cmdList->IASetVertexBuffers(0, 1, &m_vbView);
-        cmdList->IASetIndexBuffer(&m_ibView);
-        cmdList->DrawIndexedInstanced(3, 1, 0, 0, 0);
+        // Fetch the live command list from the renderer
+        ID3D12GraphicsCommandList* cmd = m_renderer->GetCommandList();
+
+        cmd->SetPipelineState(m_pso.PSO.Get());
+        cmd->SetGraphicsRootSignature(m_rootSignature.Get());
+        cmd->SetGraphicsRootConstantBufferView(0, m_cbGPUAddress);
+        cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        cmd->IASetVertexBuffers(0, 1, &m_vbView);
+        cmd->IASetIndexBuffer(&m_ibView);
+        cmd->DrawIndexedInstanced(3, 1, 0, 0, 0);
     }
 
     void DX12Triangle::Shutdown()
@@ -52,6 +60,7 @@ namespace UwU_Engine
         m_vertexBuffer.Reset();
         m_indexBuffer.Reset();
         m_rootSignature.Reset();
+        m_renderer = nullptr;
         m_ready = false;
         UWU_ENGINE_INFO("[DX12Triangle] Shutdown");
     }
@@ -61,8 +70,7 @@ namespace UwU_Engine
         CD3DX12_ROOT_PARAMETER params[1];
         params[0].InitAsConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 
-        CD3DX12_ROOT_SIGNATURE_DESC desc(
-            1, params, 0, nullptr,
+        CD3DX12_ROOT_SIGNATURE_DESC desc(1, params, 0, nullptr,
             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
         ComPtr<ID3DBlob> serialized, errors;
@@ -75,89 +83,82 @@ namespace UwU_Engine
                 (char*)errors->GetBufferPointer());
             return false;
         }
-        hr = device->CreateRootSignature(0,
-            serialized->GetBufferPointer(), serialized->GetBufferSize(),
-            IID_PPV_ARGS(&m_rootSignature));
+        hr = device->CreateRootSignature(0, serialized->GetBufferPointer(),
+            serialized->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature));
         if (FAILED(hr)) { UWU_ENGINE_ERROR("[DX12Triangle] CreateRootSignature failed"); return false; }
         return true;
     }
 
     bool DX12Triangle::BuildShadersAndInputLayout(const TriangleDesc& desc)
     {
-        // Use desc.ShaderPath — was hardcoded before
-        if (!m_vs.CompileFromFile(desc.ShaderPath, "VS", "vs_5_0")) return false;
-        if (!m_ps.CompileFromFile(desc.ShaderPath, "PS", "ps_5_0")) return false;
+        if (!m_vs.CompileFromFile(desc.shaderPath, "VS", "vs_5_0")) return false;
+        if (!m_ps.CompileFromFile(desc.shaderPath, "PS", "ps_5_0")) return false;
 
         m_inputLayout =
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
         return true;
     }
 
     bool DX12Triangle::BuildGeometry(ID3D12Device* device, const TriangleDesc& desc)
     {
-        auto CreateBuffer = [device](const void* data, UINT bytes,
-            ComPtr<ID3D12Resource>& buffer) -> bool
+        // Convert renderer-agnostic TriangleVertex → DX12Vertex (XMFLOAT3)
+        std::array<DX12Vertex, 3> verts;
+        for (int i = 0; i < 3; ++i)
+        {
+            verts[i].Position = { desc.vertices[i].position[0],
+                                  desc.vertices[i].position[1],
+                                  desc.vertices[i].position[2] };
+            verts[i].Color = { desc.vertices[i].color[0],
+                                  desc.vertices[i].color[1],
+                                  desc.vertices[i].color[2] };
+        }
+
+        auto MakeBuf = [&](const void* data, UINT bytes, ComPtr<ID3D12Resource>& buf) -> bool
             {
-                auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-                auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bytes);
-
-                HRESULT hr = device->CreateCommittedResource(
-                    &heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc,
-                    D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-                    IID_PPV_ARGS(&buffer));
-
-                if (FAILED(hr)) return false;
-
-                void* mapped = nullptr;
-                buffer->Map(0, nullptr, &mapped);
-                memcpy(mapped, data, bytes);
-                buffer->Unmap(0, nullptr);
-
+                auto hp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+                auto bd = CD3DX12_RESOURCE_DESC::Buffer(bytes);
+                if (FAILED(device->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE,
+                    &bd, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&buf))))
+                    return false;
+                void* mapped; buf->Map(0, nullptr, &mapped);
+                memcpy(mapped, data, bytes); buf->Unmap(0, nullptr);
                 return true;
             };
 
-        // Vertex buffer
-        const UINT vbSize = sizeof(TriangleVertex) * 3;
-        if (!CreateBuffer(desc.Vertices.data(), vbSize, m_vertexBuffer)) return false;
-        m_vbView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-        m_vbView.StrideInBytes = sizeof(TriangleVertex);
-        m_vbView.SizeInBytes = vbSize;
+        const UINT vbSize = sizeof(DX12Vertex) * 3;
+        if (!MakeBuf(verts.data(), vbSize, m_vertexBuffer)) return false;
+        m_vbView = { m_vertexBuffer->GetGPUVirtualAddress(), sizeof(DX12Vertex), vbSize };
 
-        // Index buffer
-        const std::array<uint32_t, 3> indices = { 0, 1, 2 };
+        const std::array<uint32_t, 3> idx = { 0, 1, 2 };
         const UINT ibSize = sizeof(uint32_t) * 3;
-        if (!CreateBuffer(indices.data(), ibSize, m_indexBuffer)) return false;
-        m_ibView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-        m_ibView.Format = DXGI_FORMAT_R32_UINT;
-        m_ibView.SizeInBytes = ibSize;
+        if (!MakeBuf(idx.data(), ibSize, m_indexBuffer)) return false;
+        m_ibView = { m_indexBuffer->GetGPUVirtualAddress(), ibSize, DXGI_FORMAT_R32_UINT };
 
         return true;
     }
 
     bool DX12Triangle::BuildConstantBuffer(ID3D12Device* device)
     {
-        const UINT cbSize = (sizeof(XMMATRIX) + 255) & ~255;  // 256 bytes
-
+        const UINT cbSize = (sizeof(XMMATRIX) + 255) & ~255;
         auto hp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
         auto bd = CD3DX12_RESOURCE_DESC::Buffer(cbSize);
         if (FAILED(device->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE, &bd,
             D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_cbResource))))
             return false;
 
-        m_cbResource->Map(0, nullptr, &m_cbMapped);          // stays mapped forever
+        m_cbResource->Map(0, nullptr, &m_cbMapped);
         m_cbGPUAddress = m_cbResource->GetGPUVirtualAddress();
 
-        XMMATRIX identity = XMMatrixIdentity();              // identity until first Draw
+        XMMATRIX identity = XMMatrixIdentity();
         memcpy(m_cbMapped, &identity, sizeof(XMMATRIX));
         return true;
     }
 
     bool DX12Triangle::BuildPSO(ID3D12Device* device)
     {
-        return m_pso.Build(device, m_rootSignature.Get(),
-            m_vs, m_ps, m_inputLayout);
+        return m_pso.Build(device, m_rootSignature.Get(), m_vs, m_ps, m_inputLayout);
     }
 }

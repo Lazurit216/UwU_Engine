@@ -19,8 +19,7 @@ namespace UwU_Engine
 	{
 		InputManager input;
 		Window* window = nullptr;           
-		std::unique_ptr<IRenderer> renderer;       
-		std::unique_ptr<DX12Triangle> triangle;           
+		std::unique_ptr<IRenderer> renderer;            
 
 		bool minimized = false;
 		bool active = true;
@@ -41,8 +40,14 @@ namespace UwU_Engine
 		void Run();
 	protected:
 		virtual bool OnInit() { return true; }
-		virtual void OnUpdate(float dt) {}
+		virtual void OnUpdate(float /*dt*/) {}
+		virtual void OnFixedUpdate(float /*fixedDt*/) {}
 		virtual void OnShutdown() {}
+
+		// Called per active context, inside BeginFrame/EndFrame.
+		// Use to draw context-specific geometry that isn't owned by a state.
+		// idx 0 = primary, 1 = secondary.
+		virtual void OnContextRender(int /*idx*/, IRenderer* /*r*/) {}
 
 		void RegisterContext(WindowContext&& ctx);
 		WindowContext& GetContext(int idx) { return m_contexts[idx]; }
@@ -58,15 +63,17 @@ namespace UwU_Engine
 		void OnWindowRestore(WindowRestoreEvent& e, int idx);
 		void OnWindowResize(WindowResizeEvent& e, int idx);
 
-		void TickContext(WindowContext& ctx);
+		void TickContext(WindowContext& ctx, int idx);
 		void ShowStats();
 	protected:
 		WindowManager    m_windowManager;
 		GameStateManager m_stateManager;
 		GameTimer        m_timer;
 		bool             m_isRunning = true;
+		float m_fixedStep = 1.f / 60.f;
 	private:
 		std::vector<WindowContext> m_contexts;
+		float m_fixedAccumulator = 0.f;
 
 	};
 

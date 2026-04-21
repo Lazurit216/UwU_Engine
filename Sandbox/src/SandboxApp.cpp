@@ -51,8 +51,8 @@ protected:
         DX12Renderer* r0Raw = r0.get();           // save raw ptr before move
 
         TriangleDesc d0;
-        d0.ShaderPath = shaderPath;
-        d0.Vertices = { {
+        d0.shaderPath = shaderPath;
+        d0.vertices = { {
             {{ 0.0f,  0.5f, 0.0f }, { 1.f, 0.f, 0.f }},  // top   — red
             {{ 0.5f, -0.5f, 0.0f }, { 0.f, 1.f, 0.f }},  // right — green
             {{-0.5f, -0.5f, 0.0f }, { 0.f, 0.f, 1.f }},  // left  — blue
@@ -63,7 +63,7 @@ protected:
         WindowContext c0;
         c0.window = win0;
         c0.renderer = std::move(r0);
-        c0.triangle = std::move(t0);
+        //c0.triangle = std::move(t0);
         RegisterContext(std::move(c0));         // idx 0 — primary
 
         //Secondary window
@@ -84,8 +84,8 @@ protected:
         r1->SetClearColor(bg1[0], bg1[1], bg1[2]);
 
         TriangleDesc d1;
-        d1.ShaderPath = shaderPath;
-        d1.Vertices = { {
+        d1.shaderPath = shaderPath;
+        d1.vertices = { {
             {{ 0.0f,  0.6f, 0.0f }, { 1.f, 1.f, 0.f }},  // top   — yellow
             {{ 0.6f, -0.4f, 0.0f }, { 1.f, 0.5f, 0.f }}, // right — orange
             {{-0.6f, -0.4f, 0.0f }, { 1.f, 1.f, 1.f }},  // left  — white
@@ -96,12 +96,25 @@ protected:
         WindowContext c1;
         c1.window = win1;
         c1.renderer = std::move(r1);
-        c1.triangle = std::move(t1);
+        //c1.triangle = std::move(t1);
         RegisterContext(std::move(c1));         // idx 1 — secondary
 
         // ── State chain (state manager runs against primary renderer) ─────────
         auto makePause = []() { return std::make_shared<GamePauseState>(); };
-        auto makeGameplay = [makePause]() { return std::make_shared<GameplayState>(makePause); };
+        auto makeGameplay = [makePause, d0]() -> std::shared_ptr<IGameState>
+            {
+                // The factory captures d0 by value. Called in OnEnter with the live renderer.
+                DrawableFactory drawFactory = [d0](IRenderer* renderer) -> std::unique_ptr<IDrawable>
+                    {
+                        // Cast is local to Sandbox — engine never does this.
+                        auto* dx12 = static_cast<DX12Renderer*>(renderer);
+                        auto tri = std::make_unique<DX12Triangle>();
+                        if (!tri->Init(dx12, d0)) return nullptr;
+                        return tri;
+                    };
+
+                return std::make_shared<GameplayState>(makePause, std::move(drawFactory));
+            };
         auto makeMenu = [makeGameplay]() { return std::make_shared<MainMenuState>(makeGameplay); };
 
         InitStateManager(std::make_shared<LoadingState>(makeMenu, 2.0f));
@@ -110,14 +123,28 @@ protected:
         return true;
     }
 
-    void OnUpdate(float dt) override
+    void OnFixedUpdate(float fixedDt) override
+    {
+        if (!m_secondaryDrawable) return;
+        auto t = m_secondaryDrawable->GetTransform();
+        t.rotation += 1.2f * fixedDt;   // steady ~1.2 rad/s regardless of FPS
+        m_secondaryDrawable->SetTransform(t);
+    }
+
+    void OnContextRender(int idx, IRenderer* /*renderer*/) override
+    {
+        if (idx == 1 && m_secondaryDrawable && m_secondaryDrawable->IsReady())
+            m_secondaryDrawable->Draw();
+    }
+
+    /*void OnUpdate(float dt) override
     {
         UpdateTriangle(GetContext(0), dt);
         UpdateTriangle(GetContext(1), dt);
-    }
+    }*/
 
 private:
-    void UpdateTriangle(WindowContext& ctx, float dt)
+    /*void UpdateTriangle(WindowContext& ctx, float dt)
     {
         auto* tri = ctx.triangle.get();
         if (!tri) return;
@@ -146,9 +173,12 @@ private:
         }
 
         tri->SetTransform(t);
-    }
+    }*/
 
     Config m_cfg;
+
+    std::unique_ptr<IDrawable> m_secondaryDrawable;
+
     float  m_moveSpeed = 0.6f;
     float  m_scaleSpeed = 0.5f;
     float  m_rotateSpeed = 1.8f;

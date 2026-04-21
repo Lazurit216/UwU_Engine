@@ -9,6 +9,7 @@
 //   Shutdown()        -  release all GPU resources (call before destructor)
 
 #include "Engine/Core.h"
+#include "Engine/Renderer/IDrawable.h"
 namespace UwU_Engine
 {
 
