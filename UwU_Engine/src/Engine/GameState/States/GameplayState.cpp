@@ -16,14 +16,20 @@ namespace UwU_Engine
         m_frameCount = 0;
         m_transform = {};
 
-        // Factory is provided by Sandbox — GameplayState never sees DX12Triangle.
+        // Factory is provided by Sandbox - GameplayState never sees DX12Triangle.
         if (ctx.renderer && m_drawFactory)
         {
             m_drawable = m_drawFactory(ctx.renderer);
-            if (!m_drawable)
-                UWU_ENGINE_WARN("Gameplay", "DrawFactory returned null — no geometry");
+            if (m_drawable)
+                UWU_ENGINE_INFO("[Gameplay] Drawable created successfully");
+            else
+                UWU_ENGINE_ERROR("[Gameplay] DrawableFactory returned null - no geometry will render");
         }
-        UWU_ENGINE_INFO("Gameplay", "Entered");
+        else
+        {
+            if (!ctx.renderer)  UWU_ENGINE_ERROR("[Gameplay] OnEnter: ctx.renderer is null");
+            if (!m_drawFactory) UWU_ENGINE_WARN("[Gameplay] OnEnter: no DrawableFactory set - state has no geometry");
+        }
     }
 
     void GameplayState::OnPause(const StateContext& ctx)
@@ -58,7 +64,7 @@ namespace UwU_Engine
     {
         if (ke.GetKeyCode() == VK_ESCAPE && m_pauseFactory)
         {
-            UWU_ENGINE_INFO("[Gameplay] Escape — pushing pause");
+            UWU_ENGINE_INFO("[Gameplay] Escape - pushing pause");
             m_pendingPush = m_pauseFactory();
             ke.Handled = true;
         }
@@ -85,7 +91,7 @@ namespace UwU_Engine
             m_frameCount = 0;
         }
 
-        // ── Transform update via InputManager ─────────────────────────────────
+        // Transform update via InputManager
         if (!ctx.input || !m_drawable) return StateTransition::None();
 
         auto& input = *ctx.input;
@@ -119,9 +125,26 @@ namespace UwU_Engine
 
     void GameplayState::Render(const StateContext& ctx)
     {
-        // IDrawable::Draw() is self-contained — no DX12 types needed here.
-        if (m_drawable && m_drawable->IsReady())
-            m_drawable->Draw();
+        static int frameCount = 0;
+        if (frameCount++ < 3)
+            UWU_ENGINE_INFO("[Gameplay] Render frame {} - drawable={} ready={}",
+                frameCount,
+                m_drawable ? "exists" : "NULL",
+                (m_drawable && m_drawable->IsReady()) ? "yes" : "no");
+        if (!m_drawable)
+        {
+            // Only log once, not every frame
+            static bool warned = false;
+            if (!warned) { UWU_ENGINE_WARN("[Gameplay] Render: m_drawable is null"); warned = true; }
+            return;
+        }
+        if (!m_drawable->IsReady())
+        {
+            static bool warned = false;
+            if (!warned) { UWU_ENGINE_WARN("[Gameplay] Render: drawable not ready"); warned = true; }
+            return;
+        }
+        m_drawable->Draw();
     }
 
 }

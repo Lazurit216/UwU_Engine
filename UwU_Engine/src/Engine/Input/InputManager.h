@@ -9,11 +9,11 @@ namespace UwU_Engine
     class UWU_API InputManager
     {
     public:
-        // Feed every engine event — ignores types it doesn't own.
+        // Feed every engine event - ignores types it doesn't own.
         void OnEvent(Event& e);
 
         // Returns true while the key is physically held.
-        // Use Windows VK codes: VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN, VK_ESCAPE …
+        // Use Windows VK codes: VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN, VK_ESCAPE, etc.
         bool IsKeyDown(int vkCode) const;
 
         // button: 0 = Left, 1 = Right, 2 = Middle

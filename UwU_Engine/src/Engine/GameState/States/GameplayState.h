@@ -39,12 +39,12 @@ namespace UwU_Engine
 
         ObjectTransform            m_transform;
 
-        // ── Input speeds (could come from config) ─────────────────────────────
+        // Input speeds (could come from config)
         float m_moveSpeed = 0.6f;
         float m_scaleSpeed = 0.5f;
         float m_rotateSpeed = 1.8f;
 
-        // ── Stats logging ─────────────────────────────────────────────────────
+        // Stats logging
         float m_totalTime = 0.f;
         int   m_frameCount = 0;
         float m_logTimer = 0.f;

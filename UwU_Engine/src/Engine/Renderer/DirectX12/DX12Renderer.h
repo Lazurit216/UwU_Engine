@@ -46,7 +46,7 @@ namespace UwU_Engine
 
         void SetClearColor(DirectX::XMVECTORF32 color) {m_clearColor = color;}
 
-        // Expose raw device for game-side resource creation (geometry, textures…)
+        // Expose raw device for game-side resource creation (geometry, textures, etc.)
         // Returns nullptr if not yet initialized.
         ID3D12Device* GetDevice()      const { return m_device.Get(); }
         ID3D12GraphicsCommandList* GetCommandList() const { return m_commandList.Get(); }

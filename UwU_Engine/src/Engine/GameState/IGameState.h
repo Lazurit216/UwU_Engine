@@ -3,10 +3,10 @@
 //
 // State lifetime (called by GameStateManager):
 //
-//   OnEnter()  — called once when the state becomes active
-//   OnExit()   — called once when the state is popped or replaced
-//   OnPause()  — called when another state is PUSHED on top (stack)
-//   OnResume() — called when the state on top is POPPED off (stack)
+//   OnEnter()  - called once when the state becomes active
+//   OnExit()   - called once when the state is popped or replaced
+//   OnPause()  - called when another state is PUSHED on top (stack)
+//   OnResume() - called when the state on top is POPPED off (stack)
 //
 // Update / Render contract:
 //   Update() returns a StateTransition.
@@ -14,10 +14,10 @@
 //   so states never see themselves replaced mid-update.
 //
 // Stack semantics:
-//   Push    — add a new state on top; current state receives OnPause()
-//   Pop     — remove top state; state below receives OnResume()
-//   Replace — pop then push in one step (no OnPause / OnResume on the old)
-//   None    — no change
+//   Push    - add a new state on top; current state receives OnPause()
+//   Pop     - remove top state; state below receives OnResume()
+//   Replace - pop then push in one step (no OnPause / OnResume on the old)
+//   None    - no change
 #include "Engine/Core.h"
 #include "Engine/Renderer/IRenderer.h"
 #include "Engine/Events/Events.h"
@@ -49,7 +49,7 @@ namespace UwU_Engine
         }
     };
 
-    // Context passed to every state method — avoids coupling to Application.
+    // Context passed to every state method - avoids coupling to Application.
     struct StateContext
     {
         IRenderer* renderer = nullptr;

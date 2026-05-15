@@ -1,6 +1,6 @@
 #pragma once
 // Engine/Renderer/IDrawable.h
-// Abstract drawable.  Sandbox and states work with IDrawable* only —
+// Abstract drawable.  Sandbox and states work with IDrawable* only -
 // they never need to see DX12Triangle or any command list.
 
 #include "Engine/Core.h"
@@ -27,9 +27,9 @@ namespace UwU_Engine
     struct TriangleDesc
     {
         std::array<TriangleVertex, 3> vertices = { {
-            {{ 0.0f,  0.5f, 0.0f }, { 1.f, 0.f, 0.f }},  // top   — red
-            {{ 0.5f, -0.5f, 0.0f }, { 0.f, 1.f, 0.f }},  // right — green
-            {{-0.5f, -0.5f, 0.0f }, { 0.f, 0.f, 1.f }},  // left  — blue
+            {{ 0.0f,  0.5f, 0.0f }, { 1.f, 0.f, 0.f }},  // top - red
+            {{ 0.5f, -0.5f, 0.0f }, { 0.f, 1.f, 0.f }},  // right - green
+            {{-0.5f, -0.5f, 0.0f }, { 0.f, 0.f, 1.f }},  // left - blue
         } };
         std::wstring shaderPath = L"Assets/Shaders/Color.hlsl";
     };

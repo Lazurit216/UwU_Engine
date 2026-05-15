@@ -16,7 +16,16 @@
 
 namespace UwU_Engine
 {
-    // ── Public ────────────────────────────────────────────────────────────────
+    static std::string NarrowAscii(const std::wstring& value)
+    {
+        std::string result;
+        result.reserve(value.size());
+        for (wchar_t ch : value)
+            result.push_back(ch >= 0 && ch <= 0x7f ? static_cast<char>(ch) : '?');
+        return result;
+    }
+
+    // Public
 
     bool DX12Renderer::Init(void* windowHandle, uint32_t width, uint32_t height,
         const RendererConfig& cfg)
@@ -56,7 +65,7 @@ namespace UwU_Engine
         m_height = height;
         m_vsync = vsync;
 
-        // Assign borrowed pointers — ComPtr AddRef keeps them alive
+        // Assign borrowed pointers - ComPtr AddRef keeps them alive
         m_device.Attach(device);   device->AddRef();
         m_factory.Attach(factory); factory->AddRef();
         m_ownsDevice = false;
@@ -185,7 +194,7 @@ namespace UwU_Engine
         m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
     }
 
-    // ── Private — init ────────────────────────────────────────────────────────
+    // Private init
 
     bool DX12Renderer::CreateDebugLayer()
     {
@@ -229,7 +238,7 @@ namespace UwU_Engine
                 D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_device))))
             {
                 std::wstring ws(desc.Description);
-                UWU_ENGINE_INFO("[DX12] Adapter: {}", std::string(ws.begin(), ws.end()));
+                UWU_ENGINE_INFO("[DX12] Adapter: {}", NarrowAscii(ws));
                 found = true;
                 break;
             }
@@ -361,7 +370,7 @@ namespace UwU_Engine
         return true;
     }
 
-    // ── Private — sync ────────────────────────────────────────────────────────
+    // Private sync
 
     void DX12Renderer::FlushCommandQueue()
     {
@@ -379,7 +388,7 @@ namespace UwU_Engine
         FlushCommandQueue();
     }
 
-    // ── Private — descriptor handles ─────────────────────────────────────────
+    // Private descriptor handles
 
     D3D12_CPU_DESCRIPTOR_HANDLE DX12Renderer::CurrentBackBufferRTV() const
     {

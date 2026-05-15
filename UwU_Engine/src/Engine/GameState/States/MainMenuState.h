@@ -9,7 +9,7 @@ namespace UwU_Engine
     public:
         using StateFactory = std::function<std::shared_ptr<IGameState>()>;
 
-        // gameplayFactory — called when "Play" is chosen
+        // gameplayFactory - called when "Play" is chosen
         explicit MainMenuState(StateFactory gameplayFactory);
 
         void            OnEnter(const StateContext& ctx)   override;
@@ -24,7 +24,7 @@ namespace UwU_Engine
 
         // Simple auto-play trigger for the prototype (simulates pressing Play).
         // Replace with ImGui button input once ImGui is wired to the renderer.
-        static constexpr float kAutoPlayAfterSeconds = 3.0f;
+        static constexpr float kAutoPlayAfterSeconds = 0.5f;
     };
 
 } 

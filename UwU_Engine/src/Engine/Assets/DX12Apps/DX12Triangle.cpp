@@ -8,8 +8,20 @@ using namespace DirectX;
 
 namespace UwU_Engine
 {
+    static std::string NarrowAscii(const std::wstring& value)
+    {
+        std::string result;
+        result.reserve(value.size());
+        for (wchar_t ch : value)
+            result.push_back(ch >= 0 && ch <= 0x7f ? static_cast<char>(ch) : '?');
+        return result;
+    }
+
     bool DX12Triangle::Init(DX12Renderer* renderer, const TriangleDesc& desc)
     {
+        UWU_ENGINE_INFO("[DX12Triangle] Init called - compiling shaders from: {}",
+            NarrowAscii(desc.shaderPath));
+
         if (!renderer || !renderer->IsReady())
         {
             UWU_ENGINE_ERROR("[DX12Triangle] Renderer is null or not ready");
@@ -31,12 +43,27 @@ namespace UwU_Engine
 
     void DX12Triangle::Draw()
     {
-        if (!m_ready || !m_renderer) return;
+        if (!m_ready || !m_renderer)
+        {
+            UWU_ENGINE_ERROR("[DX12Triangle] Renderer doesn't exist or app don't ready");
+            return;
+        }
+        static int calls = 0;
+        if (calls++ < 3)
+            UWU_ENGINE_INFO("[DX12Triangle] Draw() call #{} - renderer={} cmdList={}",
+                calls,
+                m_renderer ? "OK" : "NULL",
+                m_renderer->GetCommandList() ? "OK" : "NULL");
+        
+        const float width = static_cast<float>(m_renderer->GetWidth());
+        const float height = static_cast<float>(m_renderer->GetHeight());
+        const float aspect = (height > 0.0f) ? width / height : 1.0f;
 
-        // Build world matrix from abstract ObjectTransform
         XMMATRIX world =
             XMMatrixScaling(m_transform.scale, m_transform.scale, 1.f)
+            * XMMatrixScaling(aspect, 1.f, 1.f)
             * XMMatrixRotationZ(m_transform.rotation)
+            * XMMatrixScaling(1.f / aspect, 1.f, 1.f)
             * XMMatrixTranslation(m_transform.x, m_transform.y, 0.f);
 
         memcpy(m_cbMapped, &world, sizeof(XMMATRIX));
@@ -104,7 +131,7 @@ namespace UwU_Engine
 
     bool DX12Triangle::BuildGeometry(ID3D12Device* device, const TriangleDesc& desc)
     {
-        // Convert renderer-agnostic TriangleVertex → DX12Vertex (XMFLOAT3)
+        // Convert renderer-agnostic TriangleVertex to DX12Vertex (XMFLOAT3)
         std::array<DX12Vertex, 3> verts;
         for (int i = 0; i < 3; ++i)
         {
@@ -130,7 +157,7 @@ namespace UwU_Engine
 
         const UINT vbSize = sizeof(DX12Vertex) * 3;
         if (!MakeBuf(verts.data(), vbSize, m_vertexBuffer)) return false;
-        m_vbView = { m_vertexBuffer->GetGPUVirtualAddress(), sizeof(DX12Vertex), vbSize };
+        m_vbView = { m_vertexBuffer->GetGPUVirtualAddress(), vbSize, sizeof(DX12Vertex) };
 
         const std::array<uint32_t, 3> idx = { 0, 1, 2 };
         const UINT ibSize = sizeof(uint32_t) * 3;

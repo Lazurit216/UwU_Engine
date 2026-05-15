@@ -155,7 +155,7 @@ namespace UwU_Engine
 
         case WM_DESTROY:
             self->m_hwnd = nullptr;
-            // Do NOT PostQuitMessage — Application controls the loop exit.
+            // Do NOT PostQuitMessage - Application controls the loop exit.
             return 0;
 
         case WM_SIZE:

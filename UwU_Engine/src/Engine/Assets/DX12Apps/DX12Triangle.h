@@ -20,7 +20,7 @@ namespace UwU_Engine
     //    float scale = 1.0f;   // uniform scale      [0.1 .. 5.0]
     //    float rotation = 0.0f;   // radians, CCW
 
-    //    // Scale × RotateZ × Translate — passed to the vertex shader.
+    //    // Scale x RotateZ x Translate - passed to the vertex shader.
     //    DirectX::XMMATRIX ToMatrix() const
     //    {
     //        using namespace DirectX;
@@ -32,11 +32,11 @@ namespace UwU_Engine
 
     //struct TriangleDesc
     //{
-    //    // Vertex positions and colors — change these to get different triangles
+    //    // Vertex positions and colors - change these to get different triangles
     //    std::array<TriangleVertex, 3> Vertices = { {
-    //        {{ 0.0f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }}, // top   — red
-    //        {{ 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }}, // right — green
-    //        {{-0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }}, // left  — blue
+    //        {{ 0.0f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }}, // top - red
+    //        {{ 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }}, // right - green
+    //        {{-0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }}, // left - blue
     //    } };
 
     //    std::wstring ShaderPath = L"Assets/Shaders/Color.hlsl";
@@ -51,7 +51,7 @@ namespace UwU_Engine
         bool IsReady() const override { return m_ready; }
 
         // Uploads the current transform to the GPU CB and records draw commands.
-        // Gets the command list from the stored renderer — no raw DX12 in callers.
+        // Gets the command list from the stored renderer - no raw DX12 in callers.
         void Draw() override;
 
         void Shutdown() override;

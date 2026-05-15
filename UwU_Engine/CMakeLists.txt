@@ -37,17 +37,17 @@ set_target_properties(UwU_Engine PROPERTIES
 )
 
 foreach(SOURCE_FILE ${ENGINE_SOURCES})
-    # Получаем относительный путь от src/
+    # Get path relative to src/
     file(RELATIVE_PATH REL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src ${SOURCE_FILE})
     
-    # Получаем имя папки (например, "Core/Application.cpp" -> "Core")
+    # Get folder name, e.g. "Core/Application.cpp" -> "Core"
     get_filename_component(SOURCE_DIR ${REL_PATH} DIRECTORY)
     
     if(SOURCE_DIR)
-        # Создаем фильтр с именем папки
+        # Create a filter named after the folder
         source_group("src\\${SOURCE_DIR}" FILES ${SOURCE_FILE})
     else()
-        # Файлы в корне src/
+        # Files in the src root
         source_group("src" FILES ${SOURCE_FILE})
     endif()
 endforeach()

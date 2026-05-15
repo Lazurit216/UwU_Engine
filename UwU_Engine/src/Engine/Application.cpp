@@ -145,7 +145,7 @@ namespace UwU_Engine
 		if (idx == 0)
 		{
 			m_isRunning = false;
-			UWU_ENGINE_INFO("[App] Primary window closed — shutting down");
+			UWU_ENGINE_INFO("[App] Primary window closed - shutting down");
 		}
 	}
 

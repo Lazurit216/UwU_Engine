@@ -38,7 +38,7 @@ namespace UwU_Engine
         // 2. Update the top state and collect any new transition request.
         StateTransition t = m_stack.back()->Update(ctx, dt);
 
-        // Queue it — do NOT apply mid-frame.
+        // Queue it - do NOT apply mid-frame.
         if (t.type != TransitionType::None)
             m_pending = t;
 

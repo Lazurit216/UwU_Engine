@@ -48,7 +48,7 @@ namespace UwU_Engine
     public:
         bool Load(const std::string& filePath);
 
-        // Dot-notation access — returns null for missing paths.
+        // Dot-notation access - returns null for missing paths.
         const JsonValue& Get(const std::string& dotPath) const;
 
         float GetFloat(const std::string& path, float def = 0.f) const;

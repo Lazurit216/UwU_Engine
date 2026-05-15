@@ -11,7 +11,7 @@
 #include "GameState/GameStateManager.h"
 #include "WindowManager.h"
 
-#include "Assets/DX12Apps/DX12Triangle.h" 
+//#include "Assets/DX12Apps/DX12Triangle.h" 
 
 namespace UwU_Engine
 {
