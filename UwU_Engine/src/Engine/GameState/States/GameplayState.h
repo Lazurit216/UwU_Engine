@@ -4,19 +4,19 @@
 // In a real project this state would own the scene, camera, entities, etc.
 
 #include "Engine/GameState/IGameState.h"
-#include "Engine/Renderer/IDrawable.h"
+#include "Engine/ECS/Components.h"
+#include "Engine/ECS/RenderSystem.h"
+#include "Engine/ECS/World.h"
 
 namespace UwU_Engine
 {
-    using DrawableFactory = std::function<std::unique_ptr<IDrawable>(IRenderer*)>;
-
     class UWU_API GameplayState : public IGameState
     {
     public:
         using StateFactory = std::function<std::shared_ptr<IGameState>()>;
 
-
-        explicit GameplayState(StateFactory pauseFactory = nullptr, DrawableFactory drawFactory = nullptr);
+        explicit GameplayState(StateFactory pauseFactory = nullptr,
+            std::wstring shaderPath = L"Assets\\Shaders\\Color.hlsl");
 
         void OnEnter(const StateContext& ctx)  override;
         void OnPause(const StateContext& ctx)  override;
@@ -31,13 +31,22 @@ namespace UwU_Engine
 
     private:
         void OnKeyPressed(KeyPressedEvent& ke);
+        void BuildDemoScene();
+        EntityId CreateTriangleEntity(const std::string& name,
+            const TransformComponent& transform, const Color4& color);
+        void UpdateDemoScene(const StateContext& ctx, float dt);
     private:
-        DrawableFactory m_drawFactory;
         StateFactory                   m_pauseFactory;
         std::shared_ptr<IGameState>    m_pendingPush;
-        std::unique_ptr<IDrawable> m_drawable;
 
-        ObjectTransform            m_transform;
+        World        m_world;
+        RenderSystem m_renderSystem;
+        std::wstring m_shaderPath;
+
+        EntityId m_controlledEntity = kInvalidEntity;
+        EntityId m_spinnerEntity = kInvalidEntity;
+        EntityId m_parentEntity = kInvalidEntity;
+        EntityId m_childEntity = kInvalidEntity;
 
         // Input speeds (could come from config)
         float m_moveSpeed = 0.6f;

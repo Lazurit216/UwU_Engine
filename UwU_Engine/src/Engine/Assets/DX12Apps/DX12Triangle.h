@@ -7,47 +7,12 @@ namespace UwU_Engine
 {
     class DX12Renderer;
 
-    //struct TriangleVertex
-    //{
-    //    DirectX::XMFLOAT3 Position;
-    //    DirectX::XMFLOAT3 Color;
-    //};
-
-    //struct ObjectTransform
-    //{
-    //    float x = 0.0f;   // horizontal offset  [-1.8 .. 1.8]
-    //    float y = 0.0f;   // vertical offset    [-1.8 .. 1.8]
-    //    float scale = 1.0f;   // uniform scale      [0.1 .. 5.0]
-    //    float rotation = 0.0f;   // radians, CCW
-
-    //    // Scale x RotateZ x Translate - passed to the vertex shader.
-    //    DirectX::XMMATRIX ToMatrix() const
-    //    {
-    //        using namespace DirectX;
-    //        return XMMatrixScaling(scale, scale, 1.f)
-    //            * XMMatrixRotationZ(rotation)
-    //            * XMMatrixTranslation(x, y, 0.f);
-    //    }
-    //};
-
-    //struct TriangleDesc
-    //{
-    //    // Vertex positions and colors - change these to get different triangles
-    //    std::array<TriangleVertex, 3> Vertices = { {
-    //        {{ 0.0f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }}, // top - red
-    //        {{ 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }}, // right - green
-    //        {{-0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }}, // left - blue
-    //    } };
-
-    //    std::wstring ShaderPath = L"Assets/Shaders/Color.hlsl";
-    //};
-
     class UWU_API DX12Triangle final : public IDrawable
     {
     public:
         // Init stores the renderer pointer for use in Draw().
         // The renderer must outlive this drawable.
-        bool Init(DX12Renderer* renderer, const TriangleDesc& desc);
+        bool Init(DX12Renderer* renderer, const DrawableDesc& desc);
         bool IsReady() const override { return m_ready; }
 
         // Uploads the current transform to the GPU CB and records draw commands.
@@ -61,8 +26,8 @@ namespace UwU_Engine
 
     private:
         bool CreateRootSignature(ID3D12Device* device);
-        bool BuildShadersAndInputLayout(const TriangleDesc& desc);
-        bool BuildGeometry(ID3D12Device* device, const TriangleDesc& desc);
+        bool BuildShadersAndInputLayout(const DrawableDesc& desc);
+        bool BuildGeometry(ID3D12Device* device, const DrawableDesc& desc);
         bool BuildConstantBuffer(ID3D12Device* device);
         bool BuildPSO(ID3D12Device* device);
 

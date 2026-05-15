@@ -46,6 +46,8 @@ namespace UwU_Engine
 
         void SetClearColor(DirectX::XMVECTORF32 color) {m_clearColor = color;}
 
+        std::unique_ptr<IDrawable> CreateDrawable(const DrawableDesc& desc) override;
+
         // Expose raw device for game-side resource creation (geometry, textures, etc.)
         // Returns nullptr if not yet initialized.
         ID3D12Device* GetDevice()      const { return m_device.Get(); }

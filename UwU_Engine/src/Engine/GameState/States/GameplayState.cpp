@@ -1,12 +1,13 @@
 #include "uwupch.h"
 #include "GameplayState.h"
-//#include "Engine/Renderer/IRenderer.h"
+
+#include <cmath>
 
 namespace UwU_Engine
 {
-    GameplayState::GameplayState(StateFactory pauseFactory, DrawableFactory drawFactory)
+    GameplayState::GameplayState(StateFactory pauseFactory, std::wstring shaderPath)
         : m_pauseFactory(std::move(pauseFactory))
-        , m_drawFactory(std::move(drawFactory))
+        , m_shaderPath(std::move(shaderPath))
     {
     }
 
@@ -14,22 +15,14 @@ namespace UwU_Engine
     {
         m_totalTime = m_logTimer = 0.f;
         m_frameCount = 0;
-        m_transform = {};
+        m_pendingPush.reset();
 
-        // Factory is provided by Sandbox - GameplayState never sees DX12Triangle.
-        if (ctx.renderer && m_drawFactory)
-        {
-            m_drawable = m_drawFactory(ctx.renderer);
-            if (m_drawable)
-                UWU_ENGINE_INFO("[Gameplay] Drawable created successfully");
-            else
-                UWU_ENGINE_ERROR("[Gameplay] DrawableFactory returned null - no geometry will render");
-        }
-        else
-        {
-            if (!ctx.renderer)  UWU_ENGINE_ERROR("[Gameplay] OnEnter: ctx.renderer is null");
-            if (!m_drawFactory) UWU_ENGINE_WARN("[Gameplay] OnEnter: no DrawableFactory set - state has no geometry");
-        }
+        BuildDemoScene();
+
+        if (!ctx.renderer)
+            UWU_ENGINE_ERROR("[Gameplay] OnEnter: ctx.renderer is null");
+
+        UWU_ENGINE_INFO("[Gameplay] ECS scene created with {} entities", m_world.EntityCount());
     }
 
     void GameplayState::OnPause(const StateContext& ctx)
@@ -48,7 +41,8 @@ namespace UwU_Engine
     void GameplayState::OnExit(const StateContext& ctx)
     {
         UWU_ENGINE_INFO("[Gameplay] Exited after {:.2f}s, {} frames", m_totalTime, m_frameCount);
-        if (m_drawable) { m_drawable->Shutdown(); m_drawable.reset(); }
+        m_renderSystem.Shutdown(m_world);
+        m_world.Clear();
     }
 
     bool GameplayState::OnEvent(const StateContext& ctx, Event& e)
@@ -91,35 +85,7 @@ namespace UwU_Engine
             m_frameCount = 0;
         }
 
-        // Transform update via InputManager
-        if (!ctx.input || !m_drawable) return StateTransition::None();
-
-        auto& input = *ctx.input;
-
-        // Arrow keys: smooth movement
-        if (input.IsKeyDown(VK_LEFT))  m_transform.x -= m_moveSpeed * dt;
-        if (input.IsKeyDown(VK_RIGHT)) m_transform.x += m_moveSpeed * dt;
-        if (input.IsKeyDown(VK_UP))    m_transform.y += m_moveSpeed * dt;
-        if (input.IsKeyDown(VK_DOWN))  m_transform.y -= m_moveSpeed * dt;
-        m_transform.x = std::clamp(m_transform.x, -1.8f, 1.8f);
-        m_transform.y = std::clamp(m_transform.y, -1.8f, 1.8f);
-
-        const float dx = input.GetMouseDeltaX();
-        const float dy = input.GetMouseDeltaY();
-
-        // RMB: horizontal delta -> rotation.  dx > 0 (right) = clockwise = negative angle.
-        if (input.IsMouseDown(MouseButton::Right))
-            m_transform.rotation -= dx * m_rotateSpeed * 0.005f;
-
-        // LMB: Y-axis dominates (dy > 0 = screen down = shrink), fall back to X.
-        if (input.IsMouseDown(MouseButton::Left))
-        {
-            float driver = (std::abs(dy) >= std::abs(dx)) ? -dy : dx;
-            m_transform.scale = std::clamp(
-                m_transform.scale + driver * m_scaleSpeed * 0.005f, 0.1f, 5.0f);
-        }
-
-        m_drawable->SetTransform(m_transform);
+        UpdateDemoScene(ctx, dt);
         return StateTransition::None();
     }
 
@@ -127,24 +93,130 @@ namespace UwU_Engine
     {
         static int frameCount = 0;
         if (frameCount++ < 3)
-            UWU_ENGINE_INFO("[Gameplay] Render frame {} - drawable={} ready={}",
-                frameCount,
-                m_drawable ? "exists" : "NULL",
-                (m_drawable && m_drawable->IsReady()) ? "yes" : "no");
-        if (!m_drawable)
-        {
-            // Only log once, not every frame
-            static bool warned = false;
-            if (!warned) { UWU_ENGINE_WARN("[Gameplay] Render: m_drawable is null"); warned = true; }
-            return;
-        }
-        if (!m_drawable->IsReady())
+            UWU_ENGINE_INFO("[Gameplay] Render frame {} - ECS entities={}",
+                frameCount, m_world.EntityCount());
+
+        if (!ctx.renderer)
         {
             static bool warned = false;
-            if (!warned) { UWU_ENGINE_WARN("[Gameplay] Render: drawable not ready"); warned = true; }
+            if (!warned)
+            {
+                UWU_ENGINE_WARN("[Gameplay] Render: renderer is null");
+                warned = true;
+            }
             return;
         }
-        m_drawable->Draw();
+
+        m_renderSystem.Render(m_world, ctx.renderer);
     }
 
+    void GameplayState::BuildDemoScene()
+    {
+        m_renderSystem.Shutdown(m_world);
+        m_world.Clear();
+
+        m_controlledEntity = CreateTriangleEntity(
+            "Player triangle",
+            TransformComponent{ -0.85f, -0.30f, 0.0f, 0.0f, 0.42f, 0.42f, 1.0f },
+            Color4{ 0.95f, 0.15f, 0.18f, 1.0f });
+
+        m_spinnerEntity = CreateTriangleEntity(
+            "Auto spinner",
+            TransformComponent{ -0.20f, 0.28f, 0.0f, 0.0f, 0.34f, 0.34f, 1.0f },
+            Color4{ 0.15f, 0.90f, 0.30f, 1.0f });
+
+        CreateTriangleEntity(
+            "Static blue triangle",
+            TransformComponent{ 0.15f, -0.42f, 0.0f, 0.35f, 0.30f, 0.30f, 1.0f },
+            Color4{ 0.20f, 0.45f, 1.0f, 1.0f });
+
+        m_parentEntity = CreateTriangleEntity(
+            "Hierarchy parent",
+            TransformComponent{ 0.58f, 0.08f, 0.0f, 0.0f, 0.44f, 0.44f, 1.0f },
+            Color4{ 0.95f, 0.70f, 0.15f, 1.0f });
+
+        m_childEntity = CreateTriangleEntity(
+            "Hierarchy child",
+            TransformComponent{ 0.75f, 0.0f, 0.0f, 0.0f, 0.42f, 0.42f, 1.0f },
+            Color4{ 0.95f, 0.95f, 1.0f, 1.0f });
+
+        auto& parentHierarchy = m_world.AddComponent<HierarchyComponent>(m_parentEntity);
+        auto& childHierarchy = m_world.AddComponent<HierarchyComponent>(m_childEntity);
+        childHierarchy.parent = m_parentEntity;
+        parentHierarchy.children.push_back(m_childEntity);
+
+        UWU_ENGINE_INFO("[Gameplay] ECS demo scene initialized");
+    }
+
+    EntityId GameplayState::CreateTriangleEntity(const std::string& name,
+        const TransformComponent& transform, const Color4& color)
+    {
+        EntityId entity = m_world.CreateEntity();
+        m_world.AddComponent<TagComponent>(entity, TagComponent{ name });
+        m_world.AddComponent<TransformComponent>(entity, transform);
+
+        MaterialDesc material;
+        material.baseColor = color;
+        material.shaderPath = m_shaderPath;
+
+        m_world.AddComponent<MeshRendererComponent>(
+            entity,
+            MeshRendererComponent{ MeshFactory::CreateTriangle(1.0f, color), std::move(material) });
+
+        UWU_ENGINE_INFO("[Gameplay] Entity {} created ({})", entity, name);
+        return entity;
+    }
+
+    void GameplayState::UpdateDemoScene(const StateContext& ctx, float dt)
+    {
+        if (auto* spinner = m_world.GetComponent<TransformComponent>(m_spinnerEntity))
+        {
+            spinner->rotationZ += 1.4f * dt;
+            spinner->y = 0.28f + std::sin(m_totalTime * 1.6f) * 0.08f;
+        }
+
+        if (auto* parent = m_world.GetComponent<TransformComponent>(m_parentEntity))
+        {
+            parent->rotationZ += 0.65f * dt;
+            parent->x = 0.58f + std::sin(m_totalTime * 0.9f) * 0.12f;
+        }
+
+        if (auto* child = m_world.GetComponent<TransformComponent>(m_childEntity))
+            child->rotationZ -= 1.7f * dt;
+
+        if (!ctx.input)
+            return;
+
+        auto* controlled = m_world.GetComponent<TransformComponent>(m_controlledEntity);
+        if (!controlled)
+            return;
+
+        auto& input = *ctx.input;
+
+        if (input.IsKeyDown(VK_LEFT))  controlled->x -= m_moveSpeed * dt;
+        if (input.IsKeyDown(VK_RIGHT)) controlled->x += m_moveSpeed * dt;
+        if (input.IsKeyDown(VK_UP))    controlled->y += m_moveSpeed * dt;
+        if (input.IsKeyDown(VK_DOWN))  controlled->y -= m_moveSpeed * dt;
+
+        controlled->x = std::clamp(controlled->x, -1.8f, 1.8f);
+        controlled->y = std::clamp(controlled->y, -1.8f, 1.8f);
+
+        const float dx = input.GetMouseDeltaX();
+        const float dy = input.GetMouseDeltaY();
+
+        if (input.IsMouseDown(MouseButton::Right))
+            controlled->rotationZ -= dx * m_rotateSpeed * 0.005f;
+
+        if (input.IsMouseDown(MouseButton::Left))
+        {
+            float driver = (std::abs(dy) >= std::abs(dx)) ? -dy : dx;
+            float scale = std::clamp(
+                controlled->scaleX + driver * m_scaleSpeed * 0.005f,
+                0.1f, 5.0f);
+
+            controlled->scaleX = scale;
+            controlled->scaleY = scale;
+            controlled->scaleZ = scale;
+        }
+    }
 }

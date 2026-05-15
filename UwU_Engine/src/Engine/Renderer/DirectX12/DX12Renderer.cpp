@@ -2,6 +2,7 @@
 #include "uwupch.h"
 #include "DX12Renderer.h"
 #include "d3dx12.h"
+#include "Engine/Assets/DX12Apps/DX12Triangle.h"
 #include "Engine/Renderer/IDrawable.h"
 
 #define CHECK_HR(expr)                                                      \
@@ -192,6 +193,20 @@ namespace UwU_Engine
 
         WaitForPreviousFrame();
         m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
+    }
+
+    std::unique_ptr<IDrawable> DX12Renderer::CreateDrawable(const DrawableDesc& desc)
+    {
+        if (desc.mesh.primitive != PrimitiveType::Triangle)
+        {
+            UWU_ENGINE_WARN("[DX12] CreateDrawable: unsupported primitive type");
+            return nullptr;
+        }
+
+        auto triangle = std::make_unique<DX12Triangle>();
+        if (!triangle->Init(this, desc))
+            return nullptr;
+        return triangle;
     }
 
     // Private init

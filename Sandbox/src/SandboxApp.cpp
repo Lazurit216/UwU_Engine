@@ -2,7 +2,6 @@
 #include "Engine/Config.h"
 #include "Engine/Input/InputManager.h"
 #include "Engine/Renderer/DirectX12/DX12Renderer.h"
-#include "Engine/Assets/DX12Apps/DX12Triangle.h"
 #include "Engine/GameState/States/LoadingState.h"
 #include "Engine/GameState/States/MainMenuState.h"
 #include "Engine/GameState/States/GameplayState.h"
@@ -48,22 +47,9 @@ protected:
         auto bg0 = m_cfg.GetColor3("windows.primary.bgColor", { 0.05f, 0.05f, 0.15f });
         r0->SetClearColor(bg0[0], bg0[1], bg0[2]);
 
-        DX12Renderer* r0Raw = r0.get();           // save raw ptr before move
-
-        TriangleDesc d0;
-        d0.shaderPath = shaderPath;
-        d0.vertices = { {
-            {{ 0.0f,  0.5f, 0.0f }, { 1.f, 0.f, 0.f }},  // top - red
-            {{ 0.5f, -0.5f, 0.0f }, { 0.f, 1.f, 0.f }},  // right - green
-            {{-0.5f, -0.5f, 0.0f }, { 0.f, 0.f, 1.f }},  // left - blue
-        } };
-        auto t0 = std::make_unique<DX12Triangle>();
-        if (!t0->Init(r0Raw, d0)) { UWU_WARN("[Sandbox] triangle0 failed"); t0.reset(); }
-
         WindowContext c0;
         c0.window = win0;
         c0.renderer = std::move(r0);
-        //c0.triangle = std::move(t0);
         RegisterContext(std::move(c0));         // idx 0 - primary
 
         //Secondary window
@@ -90,35 +76,26 @@ protected:
         c1.renderer = std::move(r1);
         RegisterContext(std::move(c1));          // idx 1 - secondary
 
-        TriangleDesc d1;
-        d1.shaderPath = shaderPath;
-        d1.vertices = { {
-            {{ 0.0f,  0.6f, 0.0f }, { 1.f, 1.f, 0.f }},
-            {{ 0.6f, -0.4f, 0.0f }, { 1.f, 0.5f, 0.f }},
-            {{-0.6f, -0.4f, 0.0f }, { 1.f, 1.f, 1.f }},
-        } };
+        DrawableDesc d1;
+        d1.material.shaderPath = shaderPath;
+        d1.material.baseColor = { 1.f, 0.85f, 0.15f, 1.f };
+        d1.mesh = MeshFactory::CreateTriangle(1.2f, d1.material.baseColor);
 
-        auto tri1 = std::make_unique<DX12Triangle>();
-        if (tri1->Init(r1Raw, d1))
-            m_secondaryDrawable = std::move(tri1);
+        m_secondaryDrawable = r1Raw->CreateDrawable(d1);
+        if (m_secondaryDrawable)
+        {
+            ObjectTransform t;
+            t.scale = 1.0f;
+            m_secondaryDrawable->SetTransform(t);
+        }
         else
             UWU_WARN("Sandbox", "Secondary triangle Init failed - secondary window will be empty");
 
         // State chain (state manager runs against primary renderer)
         auto makePause = []() { return std::make_shared<GamePauseState>(); };
-        auto makeGameplay = [makePause, d0]() -> std::shared_ptr<IGameState>
+        auto makeGameplay = [makePause, shaderPath]() -> std::shared_ptr<IGameState>
             {
-                // The factory captures d0 by value. Called in OnEnter with the live renderer.
-                DrawableFactory drawFactory = [d0](IRenderer* renderer) -> std::unique_ptr<IDrawable>
-                    {
-                        // Cast is local to Sandbox - engine never does this.
-                        auto* dx12 = static_cast<DX12Renderer*>(renderer);
-                        auto tri = std::make_unique<DX12Triangle>();
-                        if (!tri->Init(dx12, d0)) return nullptr;
-                        return tri;
-                    };
-
-                return std::make_shared<GameplayState>(makePause, std::move(drawFactory));
+                return std::make_shared<GameplayState>(makePause, shaderPath);
             };
         auto makeMenu = [makeGameplay]() { return std::make_shared<MainMenuState>(makeGameplay); };
 

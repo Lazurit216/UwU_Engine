@@ -47,6 +47,9 @@ namespace UwU_Engine
 
         // Clear colour that states can set (e.g. menus use a different colour).
         virtual void SetClearColor(float r, float g, float b, float a = 1.0f) = 0;
+
+        // Renderer-backed drawable factories used by engine systems.
+        virtual std::unique_ptr<IDrawable> CreateDrawable(const DrawableDesc& desc) = 0;
     };
 
 }

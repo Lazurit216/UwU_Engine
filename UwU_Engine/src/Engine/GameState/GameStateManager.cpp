@@ -1,4 +1,4 @@
-﻿#include "uwupch.h"
+#include "uwupch.h"
 #include "GameStateManager.h"
 
 namespace UwU_Engine

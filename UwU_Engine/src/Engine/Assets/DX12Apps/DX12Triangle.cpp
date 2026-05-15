@@ -17,10 +17,10 @@ namespace UwU_Engine
         return result;
     }
 
-    bool DX12Triangle::Init(DX12Renderer* renderer, const TriangleDesc& desc)
+    bool DX12Triangle::Init(DX12Renderer* renderer, const DrawableDesc& desc)
     {
         UWU_ENGINE_INFO("[DX12Triangle] Init called - compiling shaders from: {}",
-            NarrowAscii(desc.shaderPath));
+            NarrowAscii(desc.material.shaderPath));
 
         if (!renderer || !renderer->IsReady())
         {
@@ -116,10 +116,10 @@ namespace UwU_Engine
         return true;
     }
 
-    bool DX12Triangle::BuildShadersAndInputLayout(const TriangleDesc& desc)
+    bool DX12Triangle::BuildShadersAndInputLayout(const DrawableDesc& desc)
     {
-        if (!m_vs.CompileFromFile(desc.shaderPath, "VS", "vs_5_0")) return false;
-        if (!m_ps.CompileFromFile(desc.shaderPath, "PS", "ps_5_0")) return false;
+        if (!m_vs.CompileFromFile(desc.material.shaderPath, "VS", "vs_5_0")) return false;
+        if (!m_ps.CompileFromFile(desc.material.shaderPath, "PS", "ps_5_0")) return false;
 
         m_inputLayout =
         {
@@ -129,18 +129,24 @@ namespace UwU_Engine
         return true;
     }
 
-    bool DX12Triangle::BuildGeometry(ID3D12Device* device, const TriangleDesc& desc)
+    bool DX12Triangle::BuildGeometry(ID3D12Device* device, const DrawableDesc& desc)
     {
-        // Convert renderer-agnostic TriangleVertex to DX12Vertex (XMFLOAT3)
-        std::array<DX12Vertex, 3> verts;
-        for (int i = 0; i < 3; ++i)
+        if (desc.mesh.vertices.size() != 3 || desc.mesh.indices.size() != 3)
         {
-            verts[i].Position = { desc.vertices[i].position[0],
-                                  desc.vertices[i].position[1],
-                                  desc.vertices[i].position[2] };
-            verts[i].Color = { desc.vertices[i].color[0],
-                                  desc.vertices[i].color[1],
-                                  desc.vertices[i].color[2] };
+            UWU_ENGINE_ERROR("[DX12Triangle] Triangle drawable requires 3 vertices and 3 indices");
+            return false;
+        }
+
+        // Convert renderer-agnostic Vertex to DX12Vertex (XMFLOAT3)
+        std::array<DX12Vertex, 3> verts;
+        for (size_t i = 0; i < verts.size(); ++i)
+        {
+            verts[i].Position = { desc.mesh.vertices[i].position[0],
+                                  desc.mesh.vertices[i].position[1],
+                                  desc.mesh.vertices[i].position[2] };
+            verts[i].Color = { desc.mesh.vertices[i].color[0],
+                               desc.mesh.vertices[i].color[1],
+                               desc.mesh.vertices[i].color[2] };
         }
 
         auto MakeBuf = [&](const void* data, UINT bytes, ComPtr<ID3D12Resource>& buf) -> bool
@@ -159,9 +165,8 @@ namespace UwU_Engine
         if (!MakeBuf(verts.data(), vbSize, m_vertexBuffer)) return false;
         m_vbView = { m_vertexBuffer->GetGPUVirtualAddress(), vbSize, sizeof(DX12Vertex) };
 
-        const std::array<uint32_t, 3> idx = { 0, 1, 2 };
         const UINT ibSize = sizeof(uint32_t) * 3;
-        if (!MakeBuf(idx.data(), ibSize, m_indexBuffer)) return false;
+        if (!MakeBuf(desc.mesh.indices.data(), ibSize, m_indexBuffer)) return false;
         m_ibView = { m_indexBuffer->GetGPUVirtualAddress(), ibSize, DXGI_FORMAT_R32_UINT };
 
         return true;
