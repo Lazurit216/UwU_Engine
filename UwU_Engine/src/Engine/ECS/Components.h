@@ -3,6 +3,8 @@
 #include "Engine/Core.h"
 #include "Engine/ECS/Entity.h"
 #include "Engine/Renderer/IDrawable.h"
+#include "Engine/Resources/Resource.h"
+#include "Engine/Resources/ResourceTypes.h"
 
 namespace UwU_Engine
 {
@@ -13,6 +15,7 @@ namespace UwU_Engine
         float z = 0.0f;
 
         float rotationZ = 0.0f;
+        float rotationY = 0.0f;
 
         float scaleX = 1.0f;
         float scaleY = 1.0f;
@@ -30,10 +33,16 @@ namespace UwU_Engine
         MaterialDesc material;
         std::string meshResourcePath;
 
+        std::shared_ptr<Resource<MeshAsset>> meshResource;
+        std::shared_ptr<Resource<TextureAsset>> textureResource;
+        std::shared_ptr<Resource<ShaderAsset>> shaderResource;
         std::unique_ptr<IDrawable> drawable;
         bool initFailedLogged = false;
         bool unsupportedLogged = false;
         bool textureUnsupportedLogged = false;
+        bool meshLoadFailedLogged = false;
+        bool textureLoadFailedLogged = false;
+        bool shaderLoadFailedLogged = false;
 
         MeshRendererComponent() = default;
         MeshRendererComponent(MeshData meshData, MaterialDesc materialDesc)
@@ -56,11 +65,17 @@ namespace UwU_Engine
 
             mesh = std::move(other.mesh);
             material = std::move(other.material);
-            drawable = std::move(other.drawable);
             meshResourcePath = std::move(other.meshResourcePath);
+            meshResource = std::move(other.meshResource);
+            textureResource = std::move(other.textureResource);
+            shaderResource = std::move(other.shaderResource);
+            drawable = std::move(other.drawable);
             initFailedLogged = other.initFailedLogged;
             unsupportedLogged = other.unsupportedLogged;
             textureUnsupportedLogged = other.textureUnsupportedLogged;
+            meshLoadFailedLogged = other.meshLoadFailedLogged;
+            textureLoadFailedLogged = other.textureLoadFailedLogged;
+            shaderLoadFailedLogged = other.shaderLoadFailedLogged;
             return *this;
         }
 

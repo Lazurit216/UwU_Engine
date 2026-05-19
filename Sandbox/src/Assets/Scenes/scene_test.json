@@ -69,6 +69,18 @@
         "moveSpeed": 0.8,
         "zoomSpeed": 1.0
       }
+    },
+    {
+      "id": 6,
+      "tag": { "name": "Shiba model" },
+      "transform": { "x": 0.85, "y": 0.18, "z": 0.0, "rotationZ": 0.0, "rotationY": 1.5708, "scaleX": 1.25, "scaleY": 1.25, "scaleZ": 1.25 },
+      "meshRenderer": {
+        "primitive": "CustomMesh",
+        "meshPath": "Assets\\Models\\Shiba\\Shiba.obj",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 1.0, 1.0, 1.0, 1.0 ]
+      }
     }
   ]
 }

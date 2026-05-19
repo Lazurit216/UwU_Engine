@@ -13,7 +13,7 @@ foreach(SHADER ${SANDBOX_SHADERS})
 endforeach()
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Shaders" FILES ${SANDBOX_SHADERS})
 
-file(GLOB_RECURSE SANDBOX_JSON "${CMAKE_CURRENT_SOURCE_DIR}/src/*.json")
+file(GLOB SANDBOX_JSON "${CMAKE_CURRENT_SOURCE_DIR}/src/*.json")
 foreach(JSON ${SANDBOX_JSON})
     set_source_files_properties(${JSON} PROPERTIES
         VS_TOOL_OVERRIDE "None"
@@ -21,7 +21,17 @@ foreach(JSON ${SANDBOX_JSON})
 endforeach()
 source_group("Config" FILES ${SANDBOX_JSON})
 
-add_executable(Sandbox ${SANDBOX_SOURCES} ${SANDBOX_SHADERS} ${SANDBOX_JSON})
+file(GLOB_RECURSE SANDBOX_ASSETS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/*"
+)
+foreach(ASSET ${SANDBOX_ASSETS})
+    set_source_files_properties(${ASSET} PROPERTIES
+        VS_TOOL_OVERRIDE "None"
+    )
+endforeach()
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets" PREFIX "Assets" FILES ${SANDBOX_ASSETS})
+
+add_executable(Sandbox ${SANDBOX_SOURCES} ${SANDBOX_SHADERS} ${SANDBOX_JSON} ${SANDBOX_ASSETS})
 
 set_target_properties(Sandbox PROPERTIES
     FOLDER "Sandbox"
@@ -45,14 +55,14 @@ target_include_directories(Sandbox PRIVATE ${CMAKE_SOURCE_DIR}/UwU_Engine/src)
 target_link_libraries(Sandbox PRIVATE UwU_Engine)
 target_compile_definitions(Sandbox PRIVATE UWU_PLATFORM_WINDOWS)
 
-#Copy shaders to output (runtime compilation via D3DCompileFromFile)
+#Copy all game assets, Unity-style
 add_custom_command(TARGET Sandbox POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
-        "${OUTPUT_DIR}/Sandbox/Assets/Shaders"
+        "${OUTPUT_DIR}/Sandbox/Assets"
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/Shaders"
-        "${OUTPUT_DIR}/Sandbox/Assets/Shaders"
-    COMMENT "Copying shaders to Sandbox output"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets"
+        "${OUTPUT_DIR}/Sandbox/Assets"
+    COMMENT "Copying Assets to Sandbox output"
 )
 
 #Copy engine_config.json next to Sandbox.exe
@@ -61,14 +71,4 @@ add_custom_command(TARGET Sandbox POST_BUILD
         "${CMAKE_CURRENT_SOURCE_DIR}/src/engine_config.json"
         "$<TARGET_FILE_DIR:Sandbox>/engine_config.json"
     COMMENT "Copying engine_config.json to Sandbox output"
-)
-
-#Copy scene assets to Assets/Scenes, Unity-style
-add_custom_command(TARGET Sandbox POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-        "${OUTPUT_DIR}/Sandbox/Assets/Scenes"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/Scenes"
-        "${OUTPUT_DIR}/Sandbox/Assets/Scenes"
-    COMMENT "Copying scenes to Sandbox output"
 )

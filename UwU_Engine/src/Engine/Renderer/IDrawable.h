@@ -14,11 +14,14 @@ namespace UwU_Engine
         float y = 0.f;   // vertical offset    [-1.8 .. 1.8]
         float scale = 1.f;   // uniform scale      [ 0.1 ..  5.0]
         float rotation = 0.f;   // radians, CCW
+        float rotationY = 0.f;  // radians
     };
 
     struct Vertex
     {
         float position[3];
+        float normal[3] = { 0.0f, 0.0f, 1.0f };
+        float uv[2] = { 0.0f, 0.0f };
         float color[3];
     };
 
@@ -52,6 +55,10 @@ namespace UwU_Engine
         Color4 baseColor;
         std::wstring shaderPath = L"Assets/Shaders/Color.hlsl";
         std::string texturePath;
+        int textureWidth = 0;
+        int textureHeight = 0;
+        int textureChannels = 0;
+        std::vector<uint8_t> texturePixels;
     };
 
     struct DrawableDesc
@@ -70,9 +77,9 @@ namespace UwU_Engine
             MeshData mesh;
             mesh.primitive = PrimitiveType::Triangle;
             mesh.vertices = {
-                {{ 0.0f,  h, 0.0f }, { color.r, color.g, color.b }},
-                {{ h,    -h, 0.0f }, { color.r, color.g, color.b }},
-                {{-h,    -h, 0.0f }, { color.r, color.g, color.b }},
+                {{ 0.0f,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.5f, 0.0f }, { color.r, color.g, color.b }},
+                {{ h,    -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f }, { color.r, color.g, color.b }},
+                {{-h,    -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f }, { color.r, color.g, color.b }},
             };
             mesh.indices = { 0, 1, 2 };
             return mesh;

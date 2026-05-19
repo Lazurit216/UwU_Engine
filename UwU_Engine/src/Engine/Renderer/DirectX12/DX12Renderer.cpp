@@ -197,7 +197,8 @@ namespace UwU_Engine
 
     std::unique_ptr<IDrawable> DX12Renderer::CreateDrawable(const DrawableDesc& desc)
     {
-        if (desc.mesh.primitive != PrimitiveType::Triangle)
+        if (desc.mesh.primitive != PrimitiveType::Triangle
+            && desc.mesh.primitive != PrimitiveType::CustomMesh)
         {
             UWU_ENGINE_WARN("[DX12] CreateDrawable: unsupported primitive type");
             return nullptr;

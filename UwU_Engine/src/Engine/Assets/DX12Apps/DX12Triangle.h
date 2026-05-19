@@ -28,6 +28,7 @@ namespace UwU_Engine
         bool CreateRootSignature(ID3D12Device* device);
         bool BuildShadersAndInputLayout(const DrawableDesc& desc);
         bool BuildGeometry(ID3D12Device* device, const DrawableDesc& desc);
+        bool BuildTexture(ID3D12Device* device, const DrawableDesc& desc);
         bool BuildConstantBuffer(ID3D12Device* device);
         bool BuildPSO(ID3D12Device* device);
 
@@ -37,6 +38,7 @@ namespace UwU_Engine
         {
             DirectX::XMFLOAT3 Position;
             DirectX::XMFLOAT3 Color;
+            DirectX::XMFLOAT2 TexCoord;
         };
 
         DX12Renderer* m_renderer = nullptr; // borrowed, not owned
@@ -44,8 +46,12 @@ namespace UwU_Engine
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
         Microsoft::WRL::ComPtr<ID3D12Resource>      m_vertexBuffer;
         Microsoft::WRL::ComPtr<ID3D12Resource>      m_indexBuffer;
+        Microsoft::WRL::ComPtr<ID3D12Resource>      m_textureResource;
+        Microsoft::WRL::ComPtr<ID3D12Resource>      m_textureUploadBuffer;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
         D3D12_VERTEX_BUFFER_VIEW                    m_vbView{};
         D3D12_INDEX_BUFFER_VIEW                     m_ibView{};
+        UINT                                        m_indexCount = 0;
 
         Microsoft::WRL::ComPtr<ID3D12Resource>      m_cbResource;
         void* m_cbMapped = nullptr;

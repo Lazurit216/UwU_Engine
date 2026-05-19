@@ -1,6 +1,8 @@
 #include "uwupch.h"
 #include "Config.h"
 
+#include <nlohmann/json.hpp>
+
 namespace UwU_Engine
 {
     const JsonValue& JsonValue::GetNull()
@@ -33,93 +35,51 @@ namespace UwU_Engine
     class JsonParser
     {
     public:
-        explicit JsonParser(const std::string& src) : m_src(src), m_pos(0) {}
-        JsonValue Parse() { SkipWs(); return ParseValue(); }
+        explicit JsonParser(const std::string& src) : m_src(src) {}
+
+        JsonValue Parse()
+        {
+            return Convert(nlohmann::json::parse(m_src));
+        }
 
     private:
+        JsonValue Convert(const nlohmann::json& value) const
+        {
+            if (value.is_null())
+                return JsonValue{};
+
+            if (value.is_boolean())
+                return JsonValue(value.get<bool>());
+
+            if (value.is_number())
+                return JsonValue(value.get<double>());
+
+            if (value.is_string())
+                return JsonValue(value.get<std::string>());
+
+            if (value.is_array())
+            {
+                JsonValue result;
+                result.m_type = JsonValue::Type::Array;
+                result.m_arr.reserve(value.size());
+                for (const auto& item : value)
+                    result.m_arr.push_back(Convert(item));
+                return result;
+            }
+
+            if (value.is_object())
+            {
+                JsonValue result;
+                result.m_type = JsonValue::Type::Object;
+                for (const auto& [key, item] : value.items())
+                    result.m_obj[key] = Convert(item);
+                return result;
+            }
+
+            return JsonValue{};
+        }
+
         const std::string& m_src;
-        size_t m_pos;
-
-        char  Peek()    const { return m_pos < m_src.size() ? m_src[m_pos] : '\0'; }
-        char  Consume() { return m_pos < m_src.size() ? m_src[m_pos++] : '\0'; }
-        void  SkipWs() { while (m_pos < m_src.size() && std::isspace((unsigned char)m_src[m_pos])) ++m_pos; }
-        void  Expect(char c) { SkipWs(); if (Peek() != c) throw std::runtime_error(std::string("JSON: expected '") + c + "'"); Consume(); }
-
-        JsonValue ParseValue()
-        {
-            SkipWs();
-            char c = Peek();
-            if (c == '{') return ParseObject();
-            if (c == '[') return ParseArray();
-            if (c == '"') return JsonValue(ParseString());
-            if (c == 't') { m_pos += 4; return JsonValue(true); }
-            if (c == 'f') { m_pos += 5; return JsonValue(false); }
-            if (c == 'n') { m_pos += 4; return JsonValue{}; }
-            return JsonValue(ParseNumber());
-        }
-
-        std::string ParseString()
-        {
-            Expect('"');
-            std::string r;
-            while (m_pos < m_src.size()) {
-                char ch = Consume();
-                if (ch == '"') break;
-                if (ch == '\\') {
-                    char e = Consume();
-                    switch (e) {
-                    case '"': r += '"';  break; case '\\': r += '\\'; break;
-                    case 'n': r += '\n'; break; case 'r':  r += '\r'; break;
-                    case 't': r += '\t'; break; default:   r += e;    break;
-                    }
-                }
-                else r += ch;
-            }
-            return r;
-        }
-
-        double ParseNumber()
-        {
-            size_t s = m_pos;
-            if (Peek() == '-') ++m_pos;
-            while (m_pos < m_src.size() && std::isdigit((unsigned char)m_src[m_pos])) ++m_pos;
-            if (m_pos < m_src.size() && m_src[m_pos] == '.') {
-                ++m_pos;
-                while (m_pos < m_src.size() && std::isdigit((unsigned char)m_src[m_pos])) ++m_pos;
-            }
-            if (m_pos < m_src.size() && (m_src[m_pos] == 'e' || m_src[m_pos] == 'E')) {
-                ++m_pos;
-                if (m_pos < m_src.size() && (m_src[m_pos] == '+' || m_src[m_pos] == '-')) ++m_pos;
-                while (m_pos < m_src.size() && std::isdigit((unsigned char)m_src[m_pos])) ++m_pos;
-            }
-            return std::stod(m_src.substr(s, m_pos - s));
-        }
-
-        JsonValue ParseObject()
-        {
-            Expect('{');
-            JsonValue obj; obj.m_type = JsonValue::Type::Object;
-            SkipWs(); if (Peek() == '}') { Consume(); return obj; }
-            while (true) {
-                SkipWs(); std::string key = ParseString();
-                Expect(':'); SkipWs();
-                obj.m_obj[key] = ParseValue();
-                SkipWs(); if (Peek() == '}') { Consume(); break; } Expect(',');
-            }
-            return obj;
-        }
-
-        JsonValue ParseArray()
-        {
-            Expect('[');
-            JsonValue arr; arr.m_type = JsonValue::Type::Array;
-            SkipWs(); if (Peek() == ']') { Consume(); return arr; }
-            while (true) {
-                SkipWs(); arr.m_arr.push_back(ParseValue());
-                SkipWs(); if (Peek() == ']') { Consume(); break; } Expect(',');
-            }
-            return arr;
-        }
     };
 
     bool Config::Load(const std::string& filePath)

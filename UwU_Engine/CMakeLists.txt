@@ -55,6 +55,61 @@ endforeach()
 target_include_directories(UwU_Engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(UwU_Engine PRIVATE UWU_BUILD_DLL UWU_PLATFORM_WINDOWS)
 
+set(UWU_EXTERNAL_LIBS_DIR "${CMAKE_SOURCE_DIR}/ExternalLibs")
+
+set(UWU_NLOHMANN_JSON_INCLUDE_DIR "${UWU_EXTERNAL_LIBS_DIR}/nlohmann_json/include")
+if(EXISTS "${UWU_NLOHMANN_JSON_INCLUDE_DIR}/nlohmann/json.hpp")
+    target_include_directories(UwU_Engine PRIVATE "${UWU_NLOHMANN_JSON_INCLUDE_DIR}")
+    message(STATUS "nlohmann_json enabled from ${UWU_NLOHMANN_JSON_INCLUDE_DIR}")
+else()
+    message(FATAL_ERROR "nlohmann_json headers not found in ${UWU_NLOHMANN_JSON_INCLUDE_DIR}")
+endif()
+
+set(UWU_STB_IMAGE_DIR "${UWU_EXTERNAL_LIBS_DIR}/stb_image")
+if(EXISTS "${UWU_STB_IMAGE_DIR}/stb_image.h")
+    target_include_directories(UwU_Engine PRIVATE "${UWU_STB_IMAGE_DIR}")
+    target_compile_definitions(UwU_Engine PRIVATE UWU_HAS_STB_IMAGE=1)
+    message(STATUS "stb_image enabled from ${UWU_STB_IMAGE_DIR}")
+else()
+    message(STATUS "stb_image headers not found in ${UWU_STB_IMAGE_DIR}")
+endif()
+
+set(UWU_ASSIMP_ROOT "${UWU_EXTERNAL_LIBS_DIR}/Assimp")
+set(UWU_ASSIMP_INCLUDE_DIR "${UWU_ASSIMP_ROOT}/include")
+set(UWU_ASSIMP_DEBUG_LIB "${UWU_ASSIMP_ROOT}/lib/Debug/assimp-vc143-mtd.lib")
+set(UWU_ASSIMP_DEBUG_DLL "${UWU_ASSIMP_ROOT}/bin/Debug/assimp-vc143-mtd.dll")
+set(UWU_ASSIMP_RELEASE_LIB "${UWU_ASSIMP_ROOT}/lib/Release/assimp-vc143-mt.lib")
+set(UWU_ASSIMP_RELEASE_DLL "${UWU_ASSIMP_ROOT}/bin/Release/assimp-vc143-mt.dll")
+set(UWU_ASSIMP_DEBUG_ENABLED FALSE)
+set(UWU_ASSIMP_RELEASE_ENABLED FALSE)
+
+set(UWU_ASSIMP_HEADERS_READY FALSE)
+if(EXISTS "${UWU_ASSIMP_INCLUDE_DIR}/assimp/Importer.hpp"
+    AND EXISTS "${UWU_ASSIMP_INCLUDE_DIR}/assimp/scene.h"
+    AND EXISTS "${UWU_ASSIMP_INCLUDE_DIR}/assimp/postprocess.h")
+    set(UWU_ASSIMP_HEADERS_READY TRUE)
+endif()
+
+if(UWU_ASSIMP_HEADERS_READY)
+    target_include_directories(UwU_Engine PRIVATE "${UWU_ASSIMP_INCLUDE_DIR}")
+
+    if(EXISTS "${UWU_ASSIMP_DEBUG_LIB}")
+        target_link_libraries(UwU_Engine PRIVATE "$<$<CONFIG:Debug>:${UWU_ASSIMP_DEBUG_LIB}>")
+        target_compile_definitions(UwU_Engine PRIVATE "$<$<CONFIG:Debug>:UWU_HAS_ASSIMP=1>")
+        set(UWU_ASSIMP_DEBUG_ENABLED TRUE)
+        message(STATUS "Assimp Debug lib enabled from ${UWU_ASSIMP_DEBUG_LIB}")
+    endif()
+
+    if(EXISTS "${UWU_ASSIMP_RELEASE_LIB}")
+        target_link_libraries(UwU_Engine PRIVATE "$<$<NOT:$<CONFIG:Debug>>:${UWU_ASSIMP_RELEASE_LIB}>")
+        target_compile_definitions(UwU_Engine PRIVATE "$<$<NOT:$<CONFIG:Debug>>:UWU_HAS_ASSIMP=1>")
+        set(UWU_ASSIMP_RELEASE_ENABLED TRUE)
+        message(STATUS "Assimp Release lib enabled from ${UWU_ASSIMP_RELEASE_LIB}")
+    endif()
+else()
+    message(STATUS "Assimp headers are incomplete in ${UWU_ASSIMP_INCLUDE_DIR}; MeshLoader will use OBJ fallback")
+endif()
+
 target_precompile_headers(UwU_Engine PUBLIC
     "src/uwupch.h" 
 )
@@ -67,3 +122,21 @@ add_custom_command(TARGET UwU_Engine POST_BUILD
         ${OUTPUT_DIR}/Sandbox/
     COMMENT "Copying UwU_Engine.dll to {OUTPUT_DIR}/Sandbox/"
 )
+
+if(UWU_ASSIMP_DEBUG_ENABLED AND EXISTS "${UWU_ASSIMP_DEBUG_DLL}")
+    add_custom_command(TARGET UwU_Engine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${UWU_ASSIMP_DEBUG_DLL}"
+            "${OUTPUT_DIR}/Sandbox/"
+        COMMENT "Copying Assimp Debug DLL to Sandbox output"
+    )
+endif()
+
+if(UWU_ASSIMP_RELEASE_ENABLED AND EXISTS "${UWU_ASSIMP_RELEASE_DLL}")
+    add_custom_command(TARGET UwU_Engine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${UWU_ASSIMP_RELEASE_DLL}"
+            "${OUTPUT_DIR}/Sandbox/"
+        COMMENT "Copying Assimp Release DLL to Sandbox output"
+    )
+endif()

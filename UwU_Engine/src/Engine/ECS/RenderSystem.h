@@ -5,6 +5,7 @@
 #include "Engine/ECS/SpatialGrid.h"
 #include "Engine/ECS/System.h"
 #include "Engine/Renderer/IRenderer.h"
+#include "Engine/Resources/ResourceManager.h"
 
 namespace UwU_Engine
 {
@@ -78,7 +79,10 @@ namespace UwU_Engine
     private:
         bool EnsureDrawable(World& world, EntityId entity, MeshRendererComponent& mesh, IRenderer* renderer)
         {
-            if (mesh.mesh.primitive != PrimitiveType::Triangle)
+            LoadResources(entity, mesh);
+
+            if (mesh.mesh.primitive != PrimitiveType::Triangle
+                && mesh.mesh.primitive != PrimitiveType::CustomMesh)
             {
                 if (!mesh.unsupportedLogged)
                 {
@@ -86,13 +90,6 @@ namespace UwU_Engine
                     mesh.unsupportedLogged = true;
                 }
                 return false;
-            }
-
-            if (!mesh.material.texturePath.empty() && !mesh.textureUnsupportedLogged)
-            {
-                UWU_ENGINE_WARN("[RenderSystem] Entity {} has texture '{}', current DX12 triangle backend keeps it as asset metadata",
-                    entity, mesh.material.texturePath);
-                mesh.textureUnsupportedLogged = true;
             }
 
             if (mesh.drawable)
@@ -121,15 +118,108 @@ namespace UwU_Engine
             return true;
         }
 
+        void LoadResources(EntityId entity, MeshRendererComponent& mesh)
+        {
+            auto& resources = ResourceManager::Instance();
+
+            if (!mesh.meshResourcePath.empty() && !mesh.meshResource)
+            {
+                mesh.meshResource = resources.Load<MeshAsset>(mesh.meshResourcePath);
+                if (mesh.meshResource && mesh.meshResource->IsLoaded())
+                {
+                    const MeshAsset& meshAsset = mesh.meshResource->GetData();
+                    mesh.mesh = meshAsset.mesh;
+                    ApplyMeshAssetMaterial(mesh, meshAsset);
+                    ApplyMaterialColor(mesh.mesh, mesh.material.baseColor);
+                    UWU_ENGINE_INFO("[RenderSystem] Entity {} uses mesh resource '{}'",
+                        entity, mesh.meshResourcePath);
+                }
+                else if (!mesh.meshLoadFailedLogged)
+                {
+                    UWU_ENGINE_WARN("[RenderSystem] Entity {} mesh resource '{}' is unavailable",
+                        entity, mesh.meshResourcePath);
+                    mesh.meshLoadFailedLogged = true;
+                }
+            }
+
+            if (!mesh.material.texturePath.empty() && !mesh.textureResource)
+            {
+                mesh.textureResource = resources.Load<TextureAsset>(mesh.material.texturePath);
+                if (mesh.textureResource && mesh.textureResource->IsLoaded())
+                {
+                    const auto& texture = mesh.textureResource->GetData().texture;
+                    mesh.material.textureWidth = texture.width;
+                    mesh.material.textureHeight = texture.height;
+                    mesh.material.textureChannels = texture.channels;
+                    mesh.material.texturePixels = texture.pixels;
+                    UWU_ENGINE_INFO("[RenderSystem] Entity {} uses texture resource '{}'",
+                        entity, mesh.material.texturePath);
+                }
+                else
+                {
+                    if (!mesh.textureLoadFailedLogged)
+                    {
+                        UWU_ENGINE_WARN("[RenderSystem] Entity {} texture resource '{}' is unavailable",
+                            entity, mesh.material.texturePath);
+                        mesh.textureLoadFailedLogged = true;
+                    }
+                }
+            }
+
+            const std::string shaderPath = NarrowPath(mesh.material.shaderPath);
+            if (!shaderPath.empty() && !mesh.shaderResource)
+            {
+                mesh.shaderResource = resources.Load<ShaderAsset>(shaderPath);
+                if (!mesh.shaderResource || !mesh.shaderResource->IsLoaded())
+                {
+                    if (!mesh.shaderLoadFailedLogged)
+                    {
+                        UWU_ENGINE_WARN("[RenderSystem] Entity {} shader resource '{}' is unavailable",
+                            entity, shaderPath);
+                        mesh.shaderLoadFailedLogged = true;
+                    }
+                }
+            }
+        }
+
         ObjectTransform ToObjectTransform(World& world, EntityId entity, const TransformComponent& transform) const
         {
             ObjectTransform local;
             local.x = transform.x;
             local.y = transform.y;
             local.rotation = transform.rotationZ;
+            local.rotationY = transform.rotationY;
             local.scale = (transform.scaleX + transform.scaleY) * 0.5f;
 
             return CombineWithParents(world, entity, local, 0);
+        }
+
+        void ApplyMaterialColor(MeshData& mesh, const Color4& color) const
+        {
+            for (Vertex& vertex : mesh.vertices)
+            {
+                vertex.color[0] *= color.r;
+                vertex.color[1] *= color.g;
+                vertex.color[2] *= color.b;
+            }
+        }
+
+        void ApplyMeshAssetMaterial(MeshRendererComponent& renderer, const MeshAsset& asset) const
+        {
+            if (renderer.material.texturePath.empty() && asset.material.hasDiffuseTexture)
+            {
+                renderer.material.texturePath = asset.material.diffuseTexturePath;
+                UWU_ENGINE_INFO("[RenderSystem] Using mesh material texture '{}'",
+                    renderer.material.texturePath);
+            }
+
+            if (asset.material.hasDiffuseColor)
+            {
+                renderer.material.baseColor.r *= asset.material.diffuseColor.r;
+                renderer.material.baseColor.g *= asset.material.diffuseColor.g;
+                renderer.material.baseColor.b *= asset.material.diffuseColor.b;
+                renderer.material.baseColor.a *= asset.material.diffuseColor.a;
+            }
         }
 
         ObjectTransform CombineWithParents(World& world, EntityId entity, ObjectTransform local, int depth) const
@@ -149,6 +239,7 @@ namespace UwU_Engine
             parent.x = parentTransform->x;
             parent.y = parentTransform->y;
             parent.rotation = parentTransform->rotationZ;
+            parent.rotationY = parentTransform->rotationY;
             parent.scale = (parentTransform->scaleX + parentTransform->scaleY) * 0.5f;
             parent = CombineWithParents(world, hierarchy->parent, parent, depth + 1);
 
@@ -161,6 +252,7 @@ namespace UwU_Engine
             worldTransform.x = parent.x + scaledX * c - scaledY * s;
             worldTransform.y = parent.y + scaledX * s + scaledY * c;
             worldTransform.rotation = parent.rotation + local.rotation;
+            worldTransform.rotationY = parent.rotationY + local.rotationY;
             worldTransform.scale = parent.scale * local.scale;
             return worldTransform;
         }
@@ -205,6 +297,7 @@ namespace UwU_Engine
             result.x = (dx * c - dy * s) * camera.camera.zoom;
             result.y = (dx * s + dy * c) * camera.camera.zoom;
             result.rotation = worldTransform.rotation - camera.transform.rotationZ;
+            result.rotationY = worldTransform.rotationY;
             result.scale = worldTransform.scale * camera.camera.zoom;
             return result;
         }
@@ -264,6 +357,15 @@ namespace UwU_Engine
             }
 
             return bounds;
+        }
+
+        std::string NarrowPath(const std::wstring& value) const
+        {
+            std::string result;
+            result.reserve(value.size());
+            for (wchar_t ch : value)
+                result.push_back(ch >= 0 && ch <= 127 ? static_cast<char>(ch) : '?');
+            return result;
         }
 
         SpatialGrid m_spatialGrid{ 1.0f };

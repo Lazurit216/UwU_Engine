@@ -1,30 +1,15 @@
 #include "uwupch.h"
 #include "SceneSerializer.h"
 
-#include "Engine/Config.h"
 #include "Engine/ECS/Components.h"
+
+#include <nlohmann/json.hpp>
 
 namespace UwU_Engine
 {
     namespace
     {
-        std::string EscapeJson(const std::string& value)
-        {
-            std::ostringstream out;
-            for (char ch : value)
-            {
-                switch (ch)
-                {
-                case '"':  out << "\\\""; break;
-                case '\\': out << "\\\\"; break;
-                case '\n': out << "\\n";  break;
-                case '\r': out << "\\r";  break;
-                case '\t': out << "\\t";  break;
-                default:   out << ch;      break;
-                }
-            }
-            return out.str();
-        }
+        using Json = nlohmann::json;
 
         std::string NarrowPath(const std::wstring& value)
         {
@@ -66,43 +51,121 @@ namespace UwU_Engine
             return PrimitiveType::Triangle;
         }
 
-        Color4 ReadColor(const JsonValue& value, Color4 fallback = {})
+        const Json* FindMember(const Json& object, const char* key)
         {
-            if (!value.IsArray() || value.Size() < 4)
+            if (!object.is_object())
+                return nullptr;
+
+            const auto it = object.find(key);
+            return it == object.end() ? nullptr : &(*it);
+        }
+
+        float ReadFloat(const Json& object, const char* key, float fallback)
+        {
+            const Json* value = FindMember(object, key);
+            return value && value->is_number() ? value->get<float>() : fallback;
+        }
+
+        int ReadInt(const Json& object, const char* key, int fallback)
+        {
+            const Json* value = FindMember(object, key);
+            return value && value->is_number() ? static_cast<int>(value->get<double>()) : fallback;
+        }
+
+        bool ReadBool(const Json& object, const char* key, bool fallback)
+        {
+            const Json* value = FindMember(object, key);
+            return value && value->is_boolean() ? value->get<bool>() : fallback;
+        }
+
+        std::string ReadString(const Json& object, const char* key, const std::string& fallback = "")
+        {
+            const Json* value = FindMember(object, key);
+            return value && value->is_string() ? value->get<std::string>() : fallback;
+        }
+
+        float ReadArrayFloat(const Json& array, size_t index, float fallback)
+        {
+            if (!array.is_array() || index >= array.size() || !array[index].is_number())
+                return fallback;
+
+            return array[index].get<float>();
+        }
+
+        Color4 ReadColor(const Json& value, Color4 fallback = {})
+        {
+            if (!value.is_array() || value.size() < 4)
                 return fallback;
 
             return Color4{
-                value[0].AsFloat(fallback.r),
-                value[1].AsFloat(fallback.g),
-                value[2].AsFloat(fallback.b),
-                value[3].AsFloat(fallback.a)
+                ReadArrayFloat(value, 0, fallback.r),
+                ReadArrayFloat(value, 1, fallback.g),
+                ReadArrayFloat(value, 2, fallback.b),
+                ReadArrayFloat(value, 3, fallback.a)
             };
         }
 
-        void WriteTransform(std::ostream& out, const TransformComponent& transform)
+        Json WriteTransform(const TransformComponent& transform)
         {
-            out << "{ "
-                << "\"x\": " << transform.x << ", "
-                << "\"y\": " << transform.y << ", "
-                << "\"z\": " << transform.z << ", "
-                << "\"rotationZ\": " << transform.rotationZ << ", "
-                << "\"scaleX\": " << transform.scaleX << ", "
-                << "\"scaleY\": " << transform.scaleY << ", "
-                << "\"scaleZ\": " << transform.scaleZ
-                << " }";
+            return Json{
+                { "x", transform.x },
+                { "y", transform.y },
+                { "z", transform.z },
+                { "rotationZ", transform.rotationZ },
+                { "rotationY", transform.rotationY },
+                { "scaleX", transform.scaleX },
+                { "scaleY", transform.scaleY },
+                { "scaleZ", transform.scaleZ }
+            };
         }
 
-        TransformComponent ReadTransform(const JsonValue& value)
+        TransformComponent ReadTransform(const Json& value)
         {
             TransformComponent transform;
-            transform.x = value["x"].AsFloat(0.0f);
-            transform.y = value["y"].AsFloat(0.0f);
-            transform.z = value["z"].AsFloat(0.0f);
-            transform.rotationZ = value["rotationZ"].AsFloat(0.0f);
-            transform.scaleX = value["scaleX"].AsFloat(1.0f);
-            transform.scaleY = value["scaleY"].AsFloat(1.0f);
-            transform.scaleZ = value["scaleZ"].AsFloat(1.0f);
+            transform.x = ReadFloat(value, "x", 0.0f);
+            transform.y = ReadFloat(value, "y", 0.0f);
+            transform.z = ReadFloat(value, "z", 0.0f);
+            transform.rotationZ = ReadFloat(value, "rotationZ", 0.0f);
+            transform.rotationY = ReadFloat(value, "rotationY", 0.0f);
+            transform.scaleX = ReadFloat(value, "scaleX", 1.0f);
+            transform.scaleY = ReadFloat(value, "scaleY", 1.0f);
+            transform.scaleZ = ReadFloat(value, "scaleZ", 1.0f);
             return transform;
+        }
+
+        std::string ResolveSceneAssetPath(const std::string& scenePath, const std::string& assetPath)
+        {
+            if (assetPath.empty())
+                return {};
+
+            std::filesystem::path path(assetPath);
+            if (path.is_absolute() || std::filesystem::exists(path))
+                return path.string();
+
+            std::filesystem::path sceneFile(scenePath);
+            sceneFile = sceneFile.lexically_normal();
+
+            std::filesystem::path sourcePrefix;
+            for (const auto& part : sceneFile)
+            {
+                if (part == "Assets")
+                    break;
+
+                sourcePrefix /= part;
+            }
+
+            if (!sourcePrefix.empty())
+            {
+                std::filesystem::path sourceAssetPath = sourcePrefix / path;
+                if (std::filesystem::exists(sourceAssetPath))
+                    return sourceAssetPath.string();
+            }
+
+            std::filesystem::path sceneRelativePath = sceneFile.parent_path() / path;
+            if (std::filesystem::exists(sceneRelativePath))
+                return sceneRelativePath.string();
+
+            return path.string();
         }
 
         void RebuildHierarchyChildren(World& world)
@@ -137,6 +200,57 @@ namespace UwU_Engine
         if (path.has_parent_path())
             std::filesystem::create_directories(path.parent_path());
 
+        Json root;
+        root["version"] = 1;
+        root["entities"] = Json::array();
+
+        const auto entities = world.GetEntities();
+        for (EntityId entity : entities)
+        {
+            Json node;
+            node["id"] = entity;
+
+            if (const auto* tag = world.GetComponent<TagComponent>(entity))
+                node["tag"] = Json{ { "name", tag->name } };
+
+            if (const auto* transform = world.GetComponent<TransformComponent>(entity))
+                node["transform"] = WriteTransform(*transform);
+
+            if (const auto* mesh = world.GetComponent<MeshRendererComponent>(entity))
+            {
+                const Color4 color = mesh->material.baseColor;
+                node["meshRenderer"] = Json{
+                    { "primitive", PrimitiveToString(mesh->mesh.primitive) },
+                    { "meshPath", mesh->meshResourcePath.empty() ? mesh->mesh.sourcePath : mesh->meshResourcePath },
+                    { "shaderPath", NarrowPath(mesh->material.shaderPath) },
+                    { "texturePath", mesh->material.texturePath },
+                    { "color", Json::array({ color.r, color.g, color.b, color.a }) }
+                };
+            }
+
+            if (const auto* hierarchy = world.GetComponent<HierarchyComponent>(entity))
+            {
+                node["hierarchy"] = Json{
+                    { "parent", hierarchy->parent },
+                    { "children", hierarchy->children }
+                };
+            }
+
+            if (const auto* camera = world.GetComponent<CameraComponent>(entity))
+            {
+                node["camera"] = Json{
+                    { "primary", camera->primary },
+                    { "zoom", camera->zoom },
+                    { "viewHalfWidth", camera->viewHalfWidth },
+                    { "viewHalfHeight", camera->viewHalfHeight },
+                    { "moveSpeed", camera->moveSpeed },
+                    { "zoomSpeed", camera->zoomSpeed }
+                };
+            }
+
+            root["entities"].push_back(std::move(node));
+        }
+
         std::ofstream out(filePath, std::ios::trunc);
         if (!out.is_open())
         {
@@ -144,92 +258,33 @@ namespace UwU_Engine
             return false;
         }
 
-        out << std::fixed << std::setprecision(4);
-        out << "{\n";
-        out << "  \"version\": 1,\n";
-        out << "  \"entities\": [\n";
-
-        const auto entities = world.GetEntities();
-        bool firstEntity = true;
-        for (EntityId entity : entities)
-        {
-            if (!firstEntity)
-                out << ",\n";
-            firstEntity = false;
-
-            out << "    {\n";
-            out << "      \"id\": " << entity;
-
-            if (const auto* tag = world.GetComponent<TagComponent>(entity))
-            {
-                out << ",\n      \"tag\": { \"name\": \""
-                    << EscapeJson(tag->name) << "\" }";
-            }
-
-            if (const auto* transform = world.GetComponent<TransformComponent>(entity))
-            {
-                out << ",\n      \"transform\": ";
-                WriteTransform(out, *transform);
-            }
-
-            if (const auto* mesh = world.GetComponent<MeshRendererComponent>(entity))
-            {
-                const Color4 color = mesh->material.baseColor;
-                out << ",\n      \"meshRenderer\": {\n";
-                out << "        \"primitive\": \"" << PrimitiveToString(mesh->mesh.primitive) << "\",\n";
-                out << "        \"meshPath\": \"" << EscapeJson(mesh->meshResourcePath.empty() ? mesh->mesh.sourcePath : mesh->meshResourcePath) << "\",\n";
-                out << "        \"shaderPath\": \"" << EscapeJson(NarrowPath(mesh->material.shaderPath)) << "\",\n";
-                out << "        \"texturePath\": \"" << EscapeJson(mesh->material.texturePath) << "\",\n";
-                out << "        \"color\": [ "
-                    << color.r << ", " << color.g << ", " << color.b << ", " << color.a << " ]\n";
-                out << "      }";
-            }
-
-            if (const auto* hierarchy = world.GetComponent<HierarchyComponent>(entity))
-            {
-                out << ",\n      \"hierarchy\": {\n";
-                out << "        \"parent\": " << hierarchy->parent << ",\n";
-                out << "        \"children\": [ ";
-                for (size_t i = 0; i < hierarchy->children.size(); ++i)
-                {
-                    if (i > 0)
-                        out << ", ";
-                    out << hierarchy->children[i];
-                }
-                out << " ]\n";
-                out << "      }";
-            }
-
-            if (const auto* camera = world.GetComponent<CameraComponent>(entity))
-            {
-                out << ",\n      \"camera\": {\n";
-                out << "        \"primary\": " << (camera->primary ? "true" : "false") << ",\n";
-                out << "        \"zoom\": " << camera->zoom << ",\n";
-                out << "        \"viewHalfWidth\": " << camera->viewHalfWidth << ",\n";
-                out << "        \"viewHalfHeight\": " << camera->viewHalfHeight << ",\n";
-                out << "        \"moveSpeed\": " << camera->moveSpeed << ",\n";
-                out << "        \"zoomSpeed\": " << camera->zoomSpeed << "\n";
-                out << "      }";
-            }
-
-            out << "\n    }";
-        }
-
-        out << "\n  ]\n";
-        out << "}\n";
-
+        out << root.dump(2) << '\n';
         UWU_ENGINE_INFO("[SceneSerializer] Saved scene to '{}'", filePath);
         return true;
     }
 
     bool SceneSerializer::Load(World& world, const std::string& filePath, const std::wstring& fallbackShaderPath) const
     {
-        Config config;
-        if (!config.Load(filePath))
+        std::ifstream file(filePath);
+        if (!file.is_open())
+        {
+            UWU_ENGINE_WARN("[SceneSerializer] Cannot open '{}'", filePath);
             return false;
+        }
 
-        const JsonValue& entities = config.Get("entities");
-        if (!entities.IsArray())
+        Json root;
+        try
+        {
+            root = Json::parse(file);
+        }
+        catch (const std::exception& e)
+        {
+            UWU_ENGINE_ERROR("[SceneSerializer] Parse error in '{}': {}", filePath, e.what());
+            return false;
+        }
+
+        const Json* entities = FindMember(root, "entities");
+        if (!entities || !entities->is_array())
         {
             UWU_ENGINE_WARN("[SceneSerializer] '{}' has no entities array", filePath);
             return false;
@@ -238,32 +293,34 @@ namespace UwU_Engine
         world.Clear();
 
         std::unordered_map<int, EntityId> remap;
-        for (size_t i = 0; i < entities.Size(); ++i)
+        for (size_t i = 0; i < entities->size(); ++i)
         {
-            const JsonValue& node = entities[i];
-            const int oldId = node["id"].AsInt(static_cast<int>(i + 1));
+            const Json& node = (*entities)[i];
+            const int oldId = ReadInt(node, "id", static_cast<int>(i + 1));
             remap[oldId] = world.CreateEntity();
         }
 
-        for (size_t i = 0; i < entities.Size(); ++i)
+        for (size_t i = 0; i < entities->size(); ++i)
         {
-            const JsonValue& node = entities[i];
-            const int oldId = node["id"].AsInt(static_cast<int>(i + 1));
+            const Json& node = (*entities)[i];
+            const int oldId = ReadInt(node, "id", static_cast<int>(i + 1));
             const EntityId entity = remap[oldId];
 
-            const JsonValue& tag = node["tag"];
-            if (tag.IsObject())
-                world.AddComponent<TagComponent>(entity, TagComponent{ tag["name"].AsString("Entity") });
+            const Json* tag = FindMember(node, "tag");
+            if (tag && tag->is_object())
+                world.AddComponent<TagComponent>(entity, TagComponent{ ReadString(*tag, "name", "Entity") });
 
-            const JsonValue& transform = node["transform"];
-            if (transform.IsObject())
-                world.AddComponent<TransformComponent>(entity, ReadTransform(transform));
+            const Json* transform = FindMember(node, "transform");
+            if (transform && transform->is_object())
+                world.AddComponent<TransformComponent>(entity, ReadTransform(*transform));
 
-            const JsonValue& meshRenderer = node["meshRenderer"];
-            if (meshRenderer.IsObject())
+            const Json* meshRenderer = FindMember(node, "meshRenderer");
+            if (meshRenderer && meshRenderer->is_object())
             {
-                const Color4 color = ReadColor(meshRenderer["color"]);
-                const PrimitiveType primitive = PrimitiveFromString(meshRenderer["primitive"].AsString("Triangle"));
+                const Json* colorValue = FindMember(*meshRenderer, "color");
+                const Color4 color = colorValue ? ReadColor(*colorValue) : Color4{};
+                const PrimitiveType primitive = PrimitiveFromString(
+                    ReadString(*meshRenderer, "primitive", "Triangle"));
 
                 MeshData mesh;
                 if (primitive == PrimitiveType::Triangle)
@@ -271,47 +328,54 @@ namespace UwU_Engine
                 else
                     mesh.primitive = primitive;
 
-                mesh.sourcePath = meshRenderer["meshPath"].AsString("");
+                const std::string meshPath = ResolveSceneAssetPath(
+                    filePath,
+                    ReadString(*meshRenderer, "meshPath"));
+                const std::string texturePath = ResolveSceneAssetPath(
+                    filePath,
+                    ReadString(*meshRenderer, "texturePath"));
+
+                mesh.sourcePath = meshPath;
 
                 MaterialDesc material;
                 material.baseColor = color;
-                material.texturePath = meshRenderer["texturePath"].AsString("");
+                material.texturePath = texturePath;
 
-                const std::string shaderPath = meshRenderer["shaderPath"].AsString("");
+                const std::string shaderPath = ReadString(*meshRenderer, "shaderPath");
                 material.shaderPath = shaderPath.empty() ? fallbackShaderPath : WidenPath(shaderPath);
 
                 auto& component = world.AddComponent<MeshRendererComponent>(
                     entity,
                     MeshRendererComponent{ std::move(mesh), std::move(material) });
-                component.meshResourcePath = meshRenderer["meshPath"].AsString("");
+                component.meshResourcePath = meshPath;
             }
 
-            const JsonValue& camera = node["camera"];
-            if (camera.IsObject())
+            const Json* camera = FindMember(node, "camera");
+            if (camera && camera->is_object())
             {
                 CameraComponent component;
-                component.primary = camera["primary"].AsBool(true);
-                component.zoom = std::clamp(camera["zoom"].AsFloat(1.0f), 0.25f, 4.0f);
-                component.viewHalfWidth = camera["viewHalfWidth"].AsFloat(1.8f);
-                component.viewHalfHeight = camera["viewHalfHeight"].AsFloat(1.0f);
-                component.moveSpeed = camera["moveSpeed"].AsFloat(0.8f);
-                component.zoomSpeed = camera["zoomSpeed"].AsFloat(1.0f);
+                component.primary = ReadBool(*camera, "primary", true);
+                component.zoom = std::clamp(ReadFloat(*camera, "zoom", 1.0f), 0.25f, 4.0f);
+                component.viewHalfWidth = ReadFloat(*camera, "viewHalfWidth", 1.8f);
+                component.viewHalfHeight = ReadFloat(*camera, "viewHalfHeight", 1.0f);
+                component.moveSpeed = ReadFloat(*camera, "moveSpeed", 0.8f);
+                component.zoomSpeed = ReadFloat(*camera, "zoomSpeed", 1.0f);
                 world.AddComponent<CameraComponent>(entity, component);
             }
         }
 
-        for (size_t i = 0; i < entities.Size(); ++i)
+        for (size_t i = 0; i < entities->size(); ++i)
         {
-            const JsonValue& node = entities[i];
-            const JsonValue& hierarchy = node["hierarchy"];
-            if (!hierarchy.IsObject())
+            const Json& node = (*entities)[i];
+            const Json* hierarchy = FindMember(node, "hierarchy");
+            if (!hierarchy || !hierarchy->is_object())
                 continue;
 
-            const int oldId = node["id"].AsInt(static_cast<int>(i + 1));
+            const int oldId = ReadInt(node, "id", static_cast<int>(i + 1));
             const EntityId entity = remap[oldId];
             auto& component = world.AddComponent<HierarchyComponent>(entity);
 
-            const int oldParent = hierarchy["parent"].AsInt(0);
+            const int oldParent = ReadInt(*hierarchy, "parent", 0);
             auto parentIt = remap.find(oldParent);
             component.parent = parentIt != remap.end() ? parentIt->second : kInvalidEntity;
         }
