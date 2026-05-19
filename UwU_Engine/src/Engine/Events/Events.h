@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Engine/Core.h"
 
 namespace UwU_Engine
@@ -17,7 +17,8 @@ namespace UwU_Engine
 
         MouseButtonPressed,
         MouseButtonReleased,
-        MouseMoved
+        MouseMoved,
+        MouseWheel
     };
 
     class UWU_API Event

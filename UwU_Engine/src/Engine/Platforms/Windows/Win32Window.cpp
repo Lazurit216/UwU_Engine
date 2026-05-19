@@ -1,4 +1,4 @@
-﻿#include "Win32Window.h"
+#include "Win32Window.h"
 #include "uwupch.h"
 #include "Engine/Events/WindowEvents.h"
 #include "Engine/Events/KeyboardEvents.h"
@@ -247,6 +247,21 @@ namespace UwU_Engine
             MouseMovedEvent e(static_cast<float>(LOWORD(lParam)),
                 static_cast<float>(HIWORD(lParam)));
             self->m_eventCallback(e); return 0;
+        }
+
+        case WM_MOUSEWHEEL:
+        {
+            POINT pt{
+                static_cast<short>(LOWORD(lParam)),
+                static_cast<short>(HIWORD(lParam))
+            };
+            ScreenToClient(hwnd, &pt);
+
+            const float delta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam))
+                / static_cast<float>(WHEEL_DELTA);
+            MouseWheelEvent e(delta, static_cast<float>(pt.x), static_cast<float>(pt.y));
+            self->m_eventCallback(e);
+            return 0;
         }
 
         }

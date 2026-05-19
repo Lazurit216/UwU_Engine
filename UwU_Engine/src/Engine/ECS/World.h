@@ -101,6 +101,13 @@ namespace UwU_Engine
             return m_alive.size();
         }
 
+        std::vector<EntityId> GetEntities() const
+        {
+            std::vector<EntityId> entities(m_alive.begin(), m_alive.end());
+            std::sort(entities.begin(), entities.end());
+            return entities;
+        }
+
         void Clear()
         {
             for (auto& [_, storage] : m_storages)

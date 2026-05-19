@@ -28,10 +28,12 @@ namespace UwU_Engine
     {
         MeshData mesh;
         MaterialDesc material;
+        std::string meshResourcePath;
 
         std::unique_ptr<IDrawable> drawable;
         bool initFailedLogged = false;
         bool unsupportedLogged = false;
+        bool textureUnsupportedLogged = false;
 
         MeshRendererComponent() = default;
         MeshRendererComponent(MeshData meshData, MaterialDesc materialDesc)
@@ -55,8 +57,10 @@ namespace UwU_Engine
             mesh = std::move(other.mesh);
             material = std::move(other.material);
             drawable = std::move(other.drawable);
+            meshResourcePath = std::move(other.meshResourcePath);
             initFailedLogged = other.initFailedLogged;
             unsupportedLogged = other.unsupportedLogged;
+            textureUnsupportedLogged = other.textureUnsupportedLogged;
             return *this;
         }
 
@@ -71,5 +75,15 @@ namespace UwU_Engine
     {
         EntityId parent = kInvalidEntity;
         std::vector<EntityId> children;
+    };
+
+    struct CameraComponent
+    {
+        bool primary = true;
+        float zoom = 1.0f;
+        float viewHalfWidth = 1.8f;
+        float viewHalfHeight = 1.0f;
+        float moveSpeed = 0.8f;
+        float zoomSpeed = 1.0f;
     };
 }

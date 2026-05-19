@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "entities": [
+    {
+      "id": 1,
+      "tag": { "name": "Player triangle" },
+      "transform": { "x": -1.3900, "y": 0.0297, "z": 0.0000, "rotationZ": 0.2970, "scaleX": 0.4400, "scaleY": 0.4400, "scaleZ": 0.4400 },
+      "meshRenderer": {
+        "primitive": "Triangle",
+        "meshPath": "",
+        "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
+        "texturePath": "",
+        "color": [ 0.9500, 0.1500, 0.1800, 1.0000 ]
+      },
+      "hierarchy": {
+        "parent": 0,
+        "children": [ 2 ]
+      }
+    },
+    {
+      "id": 2,
+      "tag": { "name": "Player child triangle" },
+      "transform": { "x": 1.0500, "y": 0.0000, "z": 0.0000, "rotationZ": -64.8636, "scaleX": 0.4500, "scaleY": 0.4500, "scaleZ": 1.0000 },
+      "meshRenderer": {
+        "primitive": "Triangle",
+        "meshPath": "",
+        "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
+        "texturePath": "",
+        "color": [ 1.0000, 0.9500, 0.2500, 1.0000 ]
+      },
+      "hierarchy": {
+        "parent": 1,
+        "children": [  ]
+      }
+    },
+    {
+      "id": 3,
+      "tag": { "name": "Auto spinner" },
+      "transform": { "x": -0.2000, "y": 0.2018, "z": 0.0000, "rotationZ": 53.4172, "scaleX": 0.3400, "scaleY": 0.3400, "scaleZ": 1.0000 },
+      "meshRenderer": {
+        "primitive": "Triangle",
+        "meshPath": "",
+        "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
+        "texturePath": "",
+        "color": [ 0.1500, 0.9000, 0.3000, 1.0000 ]
+      }
+    },
+    {
+      "id": 4,
+      "tag": { "name": "Static blue triangle" },
+      "transform": { "x": 0.1500, "y": -0.4200, "z": 0.0000, "rotationZ": 0.3500, "scaleX": 0.3000, "scaleY": 0.3000, "scaleZ": 1.0000 },
+      "meshRenderer": {
+        "primitive": "Triangle",
+        "meshPath": "",
+        "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
+        "texturePath": "",
+        "color": [ 0.2000, 0.4500, 1.0000, 1.0000 ]
+      }
+    },
+    {
+      "id": 5,
+      "tag": { "name": "Main camera" },
+      "transform": { "x": -0.5042, "y": -0.1718, "z": 0.0000, "rotationZ": 0.0000, "scaleX": 1.0000, "scaleY": 1.0000, "scaleZ": 1.0000 },
+      "camera": {
+        "primary": true,
+        "zoom": 0.4900,
+        "viewHalfWidth": 1.8000,
+        "viewHalfHeight": 1.0000,
+        "moveSpeed": 0.8000,
+        "zoomSpeed": 1.0000
+      }
+    }
+  ]
+}

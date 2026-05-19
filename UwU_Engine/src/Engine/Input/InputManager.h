@@ -26,6 +26,7 @@ namespace UwU_Engine
         void  BeginFrame();               // call once per frame before PollAll()
         float GetMouseDeltaX() const { return m_mouseX - m_prevMouseX; }
         float GetMouseDeltaY() const { return m_mouseY - m_prevMouseY; }
+        float GetMouseWheelDelta() const { return m_mouseWheelDelta; }
 
     private:
         std::unordered_set<int> m_keysDown;
@@ -35,6 +36,7 @@ namespace UwU_Engine
 
         float m_prevMouseX = 0.f;
         float m_prevMouseY = 0.f;
+        float m_mouseWheelDelta = 0.f;
     };
 
 }

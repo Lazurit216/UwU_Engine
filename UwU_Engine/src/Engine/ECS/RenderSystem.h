@@ -2,6 +2,7 @@
 
 #include "Engine/Core.h"
 #include "Engine/ECS/Components.h"
+#include "Engine/ECS/SpatialGrid.h"
 #include "Engine/ECS/System.h"
 #include "Engine/Renderer/IRenderer.h"
 
@@ -9,6 +10,15 @@ namespace UwU_Engine
 {
     class UWU_API RenderSystem final : public ISystem
     {
+    private:
+        struct CameraView
+        {
+            bool enabled = false;
+            TransformComponent transform;
+            CameraComponent camera;
+            SpatialBounds2D visibleBounds;
+        };
+
     public:
         void Update(World& /*world*/, float /*dt*/) override {}
 
@@ -17,13 +27,36 @@ namespace UwU_Engine
             if (!renderer || !renderer->IsReady())
                 return;
 
+            const CameraView camera = FindActiveCamera(world);
+            m_spatialGrid.Clear();
+
             world.ForEach<TransformComponent, MeshRendererComponent>(
-                [this, &world, renderer](EntityId entity, TransformComponent& transform, MeshRendererComponent& mesh)
+                [this, &world](EntityId entity, TransformComponent& transform, MeshRendererComponent& mesh)
                 {
+                    const ObjectTransform worldTransform = ToObjectTransform(world, entity, transform);
+                    m_spatialGrid.Insert(entity, ComputeBounds(mesh.mesh, worldTransform));
+                });
+
+            std::unordered_set<EntityId> visibleEntities;
+            if (camera.enabled)
+            {
+                const auto visible = m_spatialGrid.Query(camera.visibleBounds);
+                visibleEntities.insert(visible.begin(), visible.end());
+            }
+
+            world.ForEach<TransformComponent, MeshRendererComponent>(
+                [this, &world, renderer, &camera, &visibleEntities](EntityId entity, TransformComponent& transform, MeshRendererComponent& mesh)
+                {
+                    if (camera.enabled && visibleEntities.find(entity) == visibleEntities.end())
+                        return;
+
                     if (!EnsureDrawable(world, entity, mesh, renderer))
                         return;
 
                     ObjectTransform objectTransform = ToObjectTransform(world, entity, transform);
+                    if (camera.enabled)
+                        objectTransform = ApplyCamera(objectTransform, camera);
+
                     mesh.drawable->SetTransform(objectTransform);
                     mesh.drawable->Draw();
                 });
@@ -53,6 +86,13 @@ namespace UwU_Engine
                     mesh.unsupportedLogged = true;
                 }
                 return false;
+            }
+
+            if (!mesh.material.texturePath.empty() && !mesh.textureUnsupportedLogged)
+            {
+                UWU_ENGINE_WARN("[RenderSystem] Entity {} has texture '{}', current DX12 triangle backend keeps it as asset metadata",
+                    entity, mesh.material.texturePath);
+                mesh.textureUnsupportedLogged = true;
             }
 
             if (mesh.drawable)
@@ -124,5 +164,108 @@ namespace UwU_Engine
             worldTransform.scale = parent.scale * local.scale;
             return worldTransform;
         }
+
+        CameraView FindActiveCamera(World& world) const
+        {
+            CameraView view;
+
+            world.ForEach<TransformComponent, CameraComponent>(
+                [&view](EntityId /*entity*/, TransformComponent& transform, CameraComponent& camera)
+                {
+                    if (view.enabled || !camera.primary)
+                        return;
+
+                    view.enabled = true;
+                    view.transform = transform;
+                    view.camera = camera;
+
+                    const float zoom = (std::max)(camera.zoom, 0.01f);
+                    const float halfWidth = camera.viewHalfWidth / zoom;
+                    const float halfHeight = camera.viewHalfHeight / zoom;
+                    view.visibleBounds = SpatialBounds2D{
+                        transform.x - halfWidth,
+                        transform.y - halfHeight,
+                        transform.x + halfWidth,
+                        transform.y + halfHeight
+                    };
+                });
+
+            return view;
+        }
+
+        ObjectTransform ApplyCamera(const ObjectTransform& worldTransform, const CameraView& camera) const
+        {
+            const float dx = worldTransform.x - camera.transform.x;
+            const float dy = worldTransform.y - camera.transform.y;
+            const float inverseRotation = -camera.transform.rotationZ;
+            const float c = std::cos(inverseRotation);
+            const float s = std::sin(inverseRotation);
+
+            ObjectTransform result;
+            result.x = (dx * c - dy * s) * camera.camera.zoom;
+            result.y = (dx * s + dy * c) * camera.camera.zoom;
+            result.rotation = worldTransform.rotation - camera.transform.rotationZ;
+            result.scale = worldTransform.scale * camera.camera.zoom;
+            return result;
+        }
+
+        SpatialBounds2D ComputeBounds(const MeshData& mesh, const ObjectTransform& transform) const
+        {
+            float minX = -0.5f;
+            float minY = -0.5f;
+            float maxX = 0.5f;
+            float maxY = 0.5f;
+
+            if (!mesh.vertices.empty())
+            {
+                minX = maxX = mesh.vertices[0].position[0];
+                minY = maxY = mesh.vertices[0].position[1];
+
+                for (const auto& vertex : mesh.vertices)
+                {
+                    minX = (std::min)(minX, vertex.position[0]);
+                    minY = (std::min)(minY, vertex.position[1]);
+                    maxX = (std::max)(maxX, vertex.position[0]);
+                    maxY = (std::max)(maxY, vertex.position[1]);
+                }
+            }
+
+            const float c = std::cos(transform.rotation);
+            const float s = std::sin(transform.rotation);
+            const float corners[4][2] = {
+                { minX, minY },
+                { minX, maxY },
+                { maxX, minY },
+                { maxX, maxY }
+            };
+
+            SpatialBounds2D bounds;
+            bool first = true;
+            for (const auto& corner : corners)
+            {
+                const float scaledX = corner[0] * transform.scale;
+                const float scaledY = corner[1] * transform.scale;
+                const float worldX = transform.x + scaledX * c - scaledY * s;
+                const float worldY = transform.y + scaledX * s + scaledY * c;
+
+                if (first)
+                {
+                    bounds.minX = bounds.maxX = worldX;
+                    bounds.minY = bounds.maxY = worldY;
+                    first = false;
+                }
+                else
+                {
+                    bounds.minX = (std::min)(bounds.minX, worldX);
+                    bounds.minY = (std::min)(bounds.minY, worldY);
+                    bounds.maxX = (std::max)(bounds.maxX, worldX);
+                    bounds.maxY = (std::max)(bounds.maxY, worldY);
+                }
+            }
+
+            return bounds;
+        }
+
+        SpatialGrid m_spatialGrid{ 1.0f };
     };
 }

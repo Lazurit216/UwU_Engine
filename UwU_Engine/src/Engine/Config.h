@@ -1,9 +1,5 @@
-﻿#pragma once
+#pragma once
 #include "Core.h"
-#include <string>
-#include <array>
-#include <vector>
-#include <unordered_map>
 
 namespace UwU_Engine
 {
@@ -21,6 +17,7 @@ namespace UwU_Engine
         bool IsArray()  const { return m_type == Type::Array; }
         bool IsObject() const { return m_type == Type::Object; }
 
+        bool AsBool(bool def = false) const;
         float AsFloat(float def = 0.f) const;
         int AsInt(int def = 0) const;
         std::string AsString(const std::string& def = "") const;

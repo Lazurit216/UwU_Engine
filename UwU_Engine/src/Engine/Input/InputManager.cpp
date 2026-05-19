@@ -8,6 +8,7 @@ namespace UwU_Engine
     {
         m_prevMouseX = m_mouseX;
         m_prevMouseY = m_mouseY;
+        m_mouseWheelDelta = 0.0f;
     }
 
     void InputManager::OnEvent(Event& e)
@@ -37,6 +38,13 @@ namespace UwU_Engine
         case EventType::MouseMoved:
         {
             auto& me = static_cast<MouseMovedEvent&>(e);
+            m_mouseX = me.GetX(); m_mouseY = me.GetY();
+            break;
+        }
+        case EventType::MouseWheel:
+        {
+            auto& me = static_cast<MouseWheelEvent&>(e);
+            m_mouseWheelDelta += me.GetDelta();
             m_mouseX = me.GetX(); m_mouseY = me.GetY();
             break;
         }

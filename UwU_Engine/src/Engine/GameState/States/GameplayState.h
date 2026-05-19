@@ -4,8 +4,10 @@
 // In a real project this state would own the scene, camera, entities, etc.
 
 #include "Engine/GameState/IGameState.h"
+#include "Engine/ECS/CameraSystem.h"
 #include "Engine/ECS/Components.h"
 #include "Engine/ECS/RenderSystem.h"
+#include "Engine/ECS/SceneSerializer.h"
 #include "Engine/ECS/World.h"
 
 namespace UwU_Engine
@@ -16,7 +18,8 @@ namespace UwU_Engine
         using StateFactory = std::function<std::shared_ptr<IGameState>()>;
 
         explicit GameplayState(StateFactory pauseFactory = nullptr,
-            std::wstring shaderPath = L"Assets\\Shaders\\Color.hlsl");
+            std::wstring shaderPath = L"Assets\\Shaders\\Color.hlsl",
+            std::string scenePath = "scene_pz2.json");
 
         void OnEnter(const StateContext& ctx)  override;
         void OnPause(const StateContext& ctx)  override;
@@ -32,8 +35,11 @@ namespace UwU_Engine
     private:
         void OnKeyPressed(KeyPressedEvent& ke);
         void BuildDemoScene();
+        void BindDemoSceneEntities();
+        EntityId FindEntityByTag(const std::string& name);
         EntityId CreateTriangleEntity(const std::string& name,
             const TransformComponent& transform, const Color4& color);
+        EntityId CreateCameraEntity();
         void UpdateDemoScene(const StateContext& ctx, float dt);
     private:
         StateFactory                   m_pauseFactory;
@@ -41,11 +47,16 @@ namespace UwU_Engine
 
         World        m_world;
         RenderSystem m_renderSystem;
+        CameraControlSystem m_cameraSystem;
+        SceneSerializer m_sceneSerializer;
         std::wstring m_shaderPath;
+        std::string m_scenePath;
+        std::string m_sceneSavePath;
 
         EntityId m_controlledEntity = kInvalidEntity;
         EntityId m_controlledChildEntity = kInvalidEntity;
         EntityId m_spinnerEntity = kInvalidEntity;
+        EntityId m_cameraEntity = kInvalidEntity;
 
         // Input speeds (could come from config)
         float m_moveSpeed = 0.6f;

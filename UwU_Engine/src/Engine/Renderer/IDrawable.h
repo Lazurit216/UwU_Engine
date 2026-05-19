@@ -42,6 +42,7 @@ namespace UwU_Engine
     struct MeshData
     {
         PrimitiveType primitive = PrimitiveType::Triangle;
+        std::string sourcePath;
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
     };
@@ -50,6 +51,7 @@ namespace UwU_Engine
     {
         Color4 baseColor;
         std::wstring shaderPath = L"Assets/Shaders/Color.hlsl";
+        std::string texturePath;
     };
 
     struct DrawableDesc

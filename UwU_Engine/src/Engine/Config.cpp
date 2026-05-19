@@ -1,4 +1,4 @@
-﻿#include "uwupch.h"
+#include "uwupch.h"
 #include "Config.h"
 
 namespace UwU_Engine
@@ -9,6 +9,7 @@ namespace UwU_Engine
         return s_null;
     }
 
+    bool        JsonValue::AsBool(bool        def) const { return m_type == Type::Bool ? m_bool : def; }
     float       JsonValue::AsFloat(float       def) const { return m_type == Type::Number ? static_cast<float>(m_num) : def; }
     int         JsonValue::AsInt(int         def) const { return m_type == Type::Number ? static_cast<int>(m_num) : def; }
     std::string JsonValue::AsString(const std::string& def) const { return m_type == Type::String ? m_str : def; }

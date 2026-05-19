@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "entities": [
+    {
+      "id": 1,
+      "tag": { "name": "Player triangle" },
+      "transform": { "x": -0.85, "y": -0.30, "z": 0.0, "rotationZ": 0.0, "scaleX": 0.42, "scaleY": 0.42, "scaleZ": 1.0 },
+      "meshRenderer": {
+        "primitive": "Triangle",
+        "meshPath": "",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 0.95, 0.15, 0.18, 1.0 ]
+      },
+      "hierarchy": {
+        "parent": 0,
+        "children": [ 2 ]
+      }
+    },
+    {
+      "id": 2,
+      "tag": { "name": "Player child triangle" },
+      "transform": { "x": 1.05, "y": 0.0, "z": 0.0, "rotationZ": 0.0, "scaleX": 0.45, "scaleY": 0.45, "scaleZ": 1.0 },
+      "meshRenderer": {
+        "primitive": "Triangle",
+        "meshPath": "",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 1.0, 0.95, 0.25, 1.0 ]
+      },
+      "hierarchy": {
+        "parent": 1,
+        "children": []
+      }
+    },
+    {
+      "id": 3,
+      "tag": { "name": "Auto spinner" },
+      "transform": { "x": -0.20, "y": 0.28, "z": 0.0, "rotationZ": 0.0, "scaleX": 0.34, "scaleY": 0.34, "scaleZ": 1.0 },
+      "meshRenderer": {
+        "primitive": "Triangle",
+        "meshPath": "",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 0.15, 0.90, 0.30, 1.0 ]
+      }
+    },
+    {
+      "id": 4,
+      "tag": { "name": "Static blue triangle" },
+      "transform": { "x": 0.15, "y": -0.42, "z": 0.0, "rotationZ": 0.35, "scaleX": 0.30, "scaleY": 0.30, "scaleZ": 1.0 },
+      "meshRenderer": {
+        "primitive": "Triangle",
+        "meshPath": "",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 0.20, 0.45, 1.0, 1.0 ]
+      }
+    },
+    {
+      "id": 5,
+      "tag": { "name": "Main camera" },
+      "transform": { "x": 0.0, "y": 0.0, "z": 0.0, "rotationZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0 },
+      "camera": {
+        "primary": true,
+        "zoom": 1.0,
+        "viewHalfWidth": 1.8,
+        "viewHalfHeight": 1.0,
+        "moveSpeed": 0.8,
+        "zoomSpeed": 1.0
+      }
+    }
+  ]
+}

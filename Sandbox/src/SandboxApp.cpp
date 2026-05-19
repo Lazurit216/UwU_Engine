@@ -29,6 +29,7 @@ protected:
         }
         const std::wstring shaderPath = shaderBase + L"Assets\\Shaders\\Color.hlsl";
         const std::string configPath= configBase+ "engine_config.json";
+        const std::string scenePath = configBase + "scene_pz2.json";
         m_cfg.Load(configPath);
 
         m_moveSpeed = m_cfg.GetFloat("input.moveSpeed", 0.6f);
@@ -94,9 +95,9 @@ protected:
 
         // State chain (state manager runs against primary renderer)
         auto makePause = []() { return std::make_shared<GamePauseState>(); };
-        auto makeGameplay = [makePause, shaderPath]() -> std::shared_ptr<IGameState>
+        auto makeGameplay = [makePause, shaderPath, scenePath]() -> std::shared_ptr<IGameState>
             {
-                return std::make_shared<GameplayState>(makePause, shaderPath);
+                return std::make_shared<GameplayState>(makePause, shaderPath, scenePath);
             };
         auto makeMenu = [makeGameplay]() { return std::make_shared<MainMenuState>(makeGameplay); };
 

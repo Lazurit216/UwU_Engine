@@ -5,6 +5,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <cctype>
 #include <cstdint>
 #include <filesystem>
 #include <format>
@@ -31,7 +32,7 @@
 //#include "Engine/Window.h"
 
 #ifdef UWU_PLATFORM_WINDOWS
-	//#define NOMINMAX
+	#define NOMINMAX
 	#include <Windows.h>
 
 	// DirectX headers (alphabetical)

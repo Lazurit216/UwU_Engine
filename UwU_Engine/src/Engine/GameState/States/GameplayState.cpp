@@ -3,9 +3,26 @@
 
 namespace UwU_Engine
 {
-    GameplayState::GameplayState(StateFactory pauseFactory, std::wstring shaderPath)
+    namespace
+    {
+        std::string MakeSceneSavePath(const std::string& scenePath)
+        {
+            if (scenePath.empty())
+                return "scene_pz2_saved.json";
+
+            std::filesystem::path path(scenePath);
+            const std::string stem = path.stem().string();
+            const std::string extension = path.extension().string();
+            path.replace_filename(stem + "_saved" + extension);
+            return path.string();
+        }
+    }
+
+    GameplayState::GameplayState(StateFactory pauseFactory, std::wstring shaderPath, std::string scenePath)
         : m_pauseFactory(std::move(pauseFactory))
         , m_shaderPath(std::move(shaderPath))
+        , m_scenePath(std::move(scenePath))
+        , m_sceneSavePath(MakeSceneSavePath(m_scenePath))
     {
     }
 
@@ -15,7 +32,17 @@ namespace UwU_Engine
         m_frameCount = 0;
         m_pendingPush.reset();
 
-        BuildDemoScene();
+        m_renderSystem.Shutdown(m_world);
+        if (m_scenePath.empty() || !m_sceneSerializer.Load(m_world, m_scenePath, m_shaderPath))
+        {
+            UWU_ENGINE_WARN("[Gameplay] Scene file unavailable - using built-in ECS demo scene");
+            BuildDemoScene();
+        }
+        else
+        {
+            BindDemoSceneEntities();
+            UWU_ENGINE_INFO("[Gameplay] Scene loaded from '{}'", m_scenePath);
+        }
 
         if (!ctx.renderer)
             UWU_ENGINE_ERROR("[Gameplay] OnEnter: ctx.renderer is null");
@@ -58,6 +85,23 @@ namespace UwU_Engine
         {
             UWU_ENGINE_INFO("[Gameplay] Escape - pushing pause");
             m_pendingPush = m_pauseFactory();
+            ke.Handled = true;
+            return;
+        }
+
+        if (ke.GetKeyCode() == VK_F5)
+        {
+            m_sceneSerializer.Save(m_world, m_sceneSavePath);
+            ke.Handled = true;
+            return;
+        }
+
+        if (ke.GetKeyCode() == VK_F9)
+        {
+            m_renderSystem.Shutdown(m_world);
+            if (!m_sceneSerializer.Load(m_world, m_sceneSavePath, m_shaderPath))
+                m_sceneSerializer.Load(m_world, m_scenePath, m_shaderPath);
+            BindDemoSceneEntities();
             ke.Handled = true;
         }
     }
@@ -112,6 +156,10 @@ namespace UwU_Engine
     {
         m_renderSystem.Shutdown(m_world);
         m_world.Clear();
+        m_controlledEntity = kInvalidEntity;
+        m_controlledChildEntity = kInvalidEntity;
+        m_spinnerEntity = kInvalidEntity;
+        m_cameraEntity = kInvalidEntity;
 
         m_controlledEntity = CreateTriangleEntity(
             "Player triangle",
@@ -138,7 +186,29 @@ namespace UwU_Engine
         childHierarchy.parent = m_controlledEntity;
         parentHierarchy.children.push_back(m_controlledChildEntity);
 
+        m_cameraEntity = CreateCameraEntity();
+
         UWU_ENGINE_INFO("[Gameplay] ECS demo scene initialized");
+    }
+
+    void GameplayState::BindDemoSceneEntities()
+    {
+        m_controlledEntity = FindEntityByTag("Player triangle");
+        m_controlledChildEntity = FindEntityByTag("Player child triangle");
+        m_spinnerEntity = FindEntityByTag("Auto spinner");
+        m_cameraEntity = FindEntityByTag("Main camera");
+    }
+
+    EntityId GameplayState::FindEntityByTag(const std::string& name)
+    {
+        EntityId result = kInvalidEntity;
+        m_world.ForEach<TagComponent>(
+            [&result, &name](EntityId entity, TagComponent& tag)
+            {
+                if (result == kInvalidEntity && tag.name == name)
+                    result = entity;
+            });
+        return result;
     }
 
     EntityId GameplayState::CreateTriangleEntity(const std::string& name,
@@ -160,8 +230,31 @@ namespace UwU_Engine
         return entity;
     }
 
+    EntityId GameplayState::CreateCameraEntity()
+    {
+        EntityId entity = m_world.CreateEntity();
+        m_world.AddComponent<TagComponent>(entity, TagComponent{ "Main camera" });
+        m_world.AddComponent<TransformComponent>(
+            entity,
+            TransformComponent{ 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f });
+
+        CameraComponent camera;
+        camera.primary = true;
+        camera.zoom = 1.0f;
+        camera.viewHalfWidth = 1.8f;
+        camera.viewHalfHeight = 1.0f;
+        camera.moveSpeed = 0.8f;
+        camera.zoomSpeed = 1.0f;
+        m_world.AddComponent<CameraComponent>(entity, camera);
+
+        UWU_ENGINE_INFO("[Gameplay] Entity {} created (Main camera)", entity);
+        return entity;
+    }
+
     void GameplayState::UpdateDemoScene(const StateContext& ctx, float dt)
     {
+        m_cameraSystem.Update(m_world, ctx.input, dt);
+
         if (auto* spinner = m_world.GetComponent<TransformComponent>(m_spinnerEntity))
         {
             spinner->rotationZ += 1.4f * dt;

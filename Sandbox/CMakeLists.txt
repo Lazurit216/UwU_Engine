@@ -13,7 +13,15 @@ foreach(SHADER ${SANDBOX_SHADERS})
 endforeach()
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Shaders" FILES ${SANDBOX_SHADERS})
 
-add_executable(Sandbox ${SANDBOX_SOURCES} ${SANDBOX_SHADERS})
+file(GLOB_RECURSE SANDBOX_JSON "${CMAKE_CURRENT_SOURCE_DIR}/src/*.json")
+foreach(JSON ${SANDBOX_JSON})
+    set_source_files_properties(${JSON} PROPERTIES
+        VS_TOOL_OVERRIDE "None"
+    )
+endforeach()
+source_group("Config" FILES ${SANDBOX_JSON})
+
+add_executable(Sandbox ${SANDBOX_SOURCES} ${SANDBOX_SHADERS} ${SANDBOX_JSON})
 
 set_target_properties(Sandbox PROPERTIES
     FOLDER "Sandbox"
@@ -47,10 +55,13 @@ add_custom_command(TARGET Sandbox POST_BUILD
     COMMENT "Copying shaders to Sandbox output"
 )
 
-#Copy engine_config.json next to Sandbox.exe
-add_custom_command(TARGET Sandbox POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/engine_config.json"
-        "$<TARGET_FILE_DIR:Sandbox>/engine_config.json"
-    COMMENT "Copying engine_config.json to Sandbox output"
-)
+#Copy JSON config/scene files next to Sandbox.exe
+foreach(JSON ${SANDBOX_JSON})
+    get_filename_component(JSON_NAME ${JSON} NAME)
+    add_custom_command(TARGET Sandbox POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${JSON}"
+            "$<TARGET_FILE_DIR:Sandbox>/${JSON_NAME}"
+        COMMENT "Copying ${JSON_NAME} to Sandbox output"
+    )
+endforeach()
