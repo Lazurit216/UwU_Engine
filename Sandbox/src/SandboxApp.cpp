@@ -1,4 +1,5 @@
-#include <UwU.h>
+#include "uwupch.h"
+#include "UwU.h"
 #include "Engine/Config.h"
 #include "Engine/Input/InputManager.h"
 #include "Engine/Renderer/DirectX12/DX12Renderer.h"
@@ -44,7 +45,7 @@ protected:
         if (!r0->Init(win0->GetNativeHandle(), win0->GetWidth(), win0->GetHeight()))
             return false;
 
-        auto bg0 = m_cfg.GetColor3("windows.primary.bgColor", { 0.05f, 0.05f, 0.15f });
+        auto bg0 = m_cfg.GetColor3("windows.primary.bgColor", { 0.0f, 0.0f, 0.0f });
         r0->SetClearColor(bg0[0], bg0[1], bg0[2]);
 
         WindowContext c0;
@@ -66,7 +67,7 @@ protected:
             sharedDX12->GetDevice(), sharedDX12->GetFactory()))
             return false;
 
-        auto bg1 = m_cfg.GetColor3("windows.secondary.bgColor", { 0.15f, 0.07f, 0.03f });
+        auto bg1 = m_cfg.GetColor3("windows.secondary.bgColor", { 0.0f, 0.0f, 0.0f });
         r1->SetClearColor(bg1[0], bg1[1], bg1[2]);
 
         DX12Renderer* r1Raw = r1.get();  

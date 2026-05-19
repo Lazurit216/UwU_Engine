@@ -44,9 +44,8 @@ namespace UwU_Engine
         std::wstring m_shaderPath;
 
         EntityId m_controlledEntity = kInvalidEntity;
+        EntityId m_controlledChildEntity = kInvalidEntity;
         EntityId m_spinnerEntity = kInvalidEntity;
-        EntityId m_parentEntity = kInvalidEntity;
-        EntityId m_childEntity = kInvalidEntity;
 
         // Input speeds (could come from config)
         float m_moveSpeed = 0.6f;

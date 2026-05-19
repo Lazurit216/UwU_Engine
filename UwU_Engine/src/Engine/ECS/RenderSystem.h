@@ -5,8 +5,6 @@
 #include "Engine/ECS/System.h"
 #include "Engine/Renderer/IRenderer.h"
 
-#include <cmath>
-
 namespace UwU_Engine
 {
     class UWU_API RenderSystem final : public ISystem

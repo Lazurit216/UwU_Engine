@@ -3,13 +3,6 @@
 #include "Engine/Core.h"
 #include "Engine/ECS/Entity.h"
 
-#include <memory>
-#include <typeindex>
-#include <tuple>
-#include <unordered_map>
-#include <unordered_set>
-#include <utility>
-
 namespace UwU_Engine
 {
     class IComponentStorage

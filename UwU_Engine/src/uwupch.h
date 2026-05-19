@@ -1,9 +1,10 @@
-﻿#pragma once
+#pragma once
 
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <format>
@@ -17,8 +18,11 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
+#include <typeindex>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 #include <xmemory>
 #include <xutility>

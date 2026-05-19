@@ -4,8 +4,6 @@
 // they never need to see DX12Triangle or any command list.
 
 #include "Engine/Core.h"
-#include <string>
-#include <vector>
 
 namespace UwU_Engine
 {

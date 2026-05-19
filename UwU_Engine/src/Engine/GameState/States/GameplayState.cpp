@@ -1,8 +1,6 @@
 #include "uwupch.h"
 #include "GameplayState.h"
 
-#include <cmath>
-
 namespace UwU_Engine
 {
     GameplayState::GameplayState(StateFactory pauseFactory, std::wstring shaderPath)
@@ -120,6 +118,11 @@ namespace UwU_Engine
             TransformComponent{ -0.85f, -0.30f, 0.0f, 0.0f, 0.42f, 0.42f, 1.0f },
             Color4{ 0.95f, 0.15f, 0.18f, 1.0f });
 
+        m_controlledChildEntity = CreateTriangleEntity(
+            "Player child triangle",
+            TransformComponent{ 1.05f, 0.0f, 0.0f, 0.0f, 0.45f, 0.45f, 1.0f },
+            Color4{ 1.0f, 0.95f, 0.25f, 1.0f });
+
         m_spinnerEntity = CreateTriangleEntity(
             "Auto spinner",
             TransformComponent{ -0.20f, 0.28f, 0.0f, 0.0f, 0.34f, 0.34f, 1.0f },
@@ -130,20 +133,10 @@ namespace UwU_Engine
             TransformComponent{ 0.15f, -0.42f, 0.0f, 0.35f, 0.30f, 0.30f, 1.0f },
             Color4{ 0.20f, 0.45f, 1.0f, 1.0f });
 
-        m_parentEntity = CreateTriangleEntity(
-            "Hierarchy parent",
-            TransformComponent{ 0.58f, 0.08f, 0.0f, 0.0f, 0.44f, 0.44f, 1.0f },
-            Color4{ 0.95f, 0.70f, 0.15f, 1.0f });
-
-        m_childEntity = CreateTriangleEntity(
-            "Hierarchy child",
-            TransformComponent{ 0.75f, 0.0f, 0.0f, 0.0f, 0.42f, 0.42f, 1.0f },
-            Color4{ 0.95f, 0.95f, 1.0f, 1.0f });
-
-        auto& parentHierarchy = m_world.AddComponent<HierarchyComponent>(m_parentEntity);
-        auto& childHierarchy = m_world.AddComponent<HierarchyComponent>(m_childEntity);
-        childHierarchy.parent = m_parentEntity;
-        parentHierarchy.children.push_back(m_childEntity);
+        auto& parentHierarchy = m_world.AddComponent<HierarchyComponent>(m_controlledEntity);
+        auto& childHierarchy = m_world.AddComponent<HierarchyComponent>(m_controlledChildEntity);
+        childHierarchy.parent = m_controlledEntity;
+        parentHierarchy.children.push_back(m_controlledChildEntity);
 
         UWU_ENGINE_INFO("[Gameplay] ECS demo scene initialized");
     }
@@ -175,13 +168,7 @@ namespace UwU_Engine
             spinner->y = 0.28f + std::sin(m_totalTime * 1.6f) * 0.08f;
         }
 
-        if (auto* parent = m_world.GetComponent<TransformComponent>(m_parentEntity))
-        {
-            parent->rotationZ += 0.65f * dt;
-            parent->x = 0.58f + std::sin(m_totalTime * 0.9f) * 0.12f;
-        }
-
-        if (auto* child = m_world.GetComponent<TransformComponent>(m_childEntity))
+        if (auto* child = m_world.GetComponent<TransformComponent>(m_controlledChildEntity))
             child->rotationZ -= 1.7f * dt;
 
         if (!ctx.input)
