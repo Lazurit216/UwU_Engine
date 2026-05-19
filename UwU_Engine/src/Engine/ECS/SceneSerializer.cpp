@@ -133,6 +133,10 @@ namespace UwU_Engine
 
     bool SceneSerializer::Save(World& world, const std::string& filePath) const
     {
+        const std::filesystem::path path(filePath);
+        if (path.has_parent_path())
+            std::filesystem::create_directories(path.parent_path());
+
         std::ofstream out(filePath, std::ios::trunc);
         if (!out.is_open())
         {

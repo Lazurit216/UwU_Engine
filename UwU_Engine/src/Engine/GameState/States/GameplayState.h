@@ -19,7 +19,7 @@ namespace UwU_Engine
 
         explicit GameplayState(StateFactory pauseFactory = nullptr,
             std::wstring shaderPath = L"Assets\\Shaders\\Color.hlsl",
-            std::string scenePath = "scene_pz2.json");
+            std::string scenePath = "Assets\\Scenes\\scene_test.json");
 
         void OnEnter(const StateContext& ctx)  override;
         void OnPause(const StateContext& ctx)  override;

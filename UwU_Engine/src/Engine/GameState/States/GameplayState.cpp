@@ -8,7 +8,7 @@ namespace UwU_Engine
         std::string MakeSceneSavePath(const std::string& scenePath)
         {
             if (scenePath.empty())
-                return "scene_pz2_saved.json";
+                return "Assets\\Scenes\\scene_test_saved.json";
 
             std::filesystem::path path(scenePath);
             const std::string stem = path.stem().string();

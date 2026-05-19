@@ -29,7 +29,7 @@ protected:
         }
         const std::wstring shaderPath = shaderBase + L"Assets\\Shaders\\Color.hlsl";
         const std::string configPath= configBase+ "engine_config.json";
-        const std::string scenePath = configBase + "scene_pz2.json";
+        const std::string scenePath = configBase + "Assets\\Scenes\\scene_test.json";
         m_cfg.Load(configPath);
 
         m_moveSpeed = m_cfg.GetFloat("input.moveSpeed", 0.6f);

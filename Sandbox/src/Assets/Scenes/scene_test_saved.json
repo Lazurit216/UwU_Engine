@@ -4,7 +4,7 @@
     {
       "id": 1,
       "tag": { "name": "Player triangle" },
-      "transform": { "x": -1.3900, "y": 0.0297, "z": 0.0000, "rotationZ": 0.2970, "scaleX": 0.4400, "scaleY": 0.4400, "scaleZ": 0.4400 },
+      "transform": { "x": -0.8500, "y": -0.3000, "z": 0.0000, "rotationZ": 0.0000, "scaleX": 1.6825, "scaleY": 1.6825, "scaleZ": 1.6825 },
       "meshRenderer": {
         "primitive": "Triangle",
         "meshPath": "",
@@ -20,7 +20,7 @@
     {
       "id": 2,
       "tag": { "name": "Player child triangle" },
-      "transform": { "x": 1.0500, "y": 0.0000, "z": 0.0000, "rotationZ": -64.8636, "scaleX": 0.4500, "scaleY": 0.4500, "scaleZ": 1.0000 },
+      "transform": { "x": 1.0500, "y": 0.0000, "z": 0.0000, "rotationZ": -10.7014, "scaleX": 0.4500, "scaleY": 0.4500, "scaleZ": 1.0000 },
       "meshRenderer": {
         "primitive": "Triangle",
         "meshPath": "",
@@ -36,7 +36,7 @@
     {
       "id": 3,
       "tag": { "name": "Auto spinner" },
-      "transform": { "x": -0.2000, "y": 0.2018, "z": 0.0000, "rotationZ": 53.4172, "scaleX": 0.3400, "scaleY": 0.3400, "scaleZ": 1.0000 },
+      "transform": { "x": -0.2000, "y": 0.2318, "z": 0.0000, "rotationZ": 8.8129, "scaleX": 0.3400, "scaleY": 0.3400, "scaleZ": 1.0000 },
       "meshRenderer": {
         "primitive": "Triangle",
         "meshPath": "",
@@ -60,10 +60,10 @@
     {
       "id": 5,
       "tag": { "name": "Main camera" },
-      "transform": { "x": -0.5042, "y": -0.1718, "z": 0.0000, "rotationZ": 0.0000, "scaleX": 1.0000, "scaleY": 1.0000, "scaleZ": 1.0000 },
+      "transform": { "x": 0.0000, "y": 0.0000, "z": 0.0000, "rotationZ": 0.0000, "scaleX": 1.0000, "scaleY": 1.0000, "scaleZ": 1.0000 },
       "camera": {
         "primary": true,
-        "zoom": 0.4900,
+        "zoom": 1.0000,
         "viewHalfWidth": 1.8000,
         "viewHalfHeight": 1.0000,
         "moveSpeed": 0.8000,

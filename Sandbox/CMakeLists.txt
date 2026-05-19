@@ -55,13 +55,20 @@ add_custom_command(TARGET Sandbox POST_BUILD
     COMMENT "Copying shaders to Sandbox output"
 )
 
-#Copy JSON config/scene files next to Sandbox.exe
-foreach(JSON ${SANDBOX_JSON})
-    get_filename_component(JSON_NAME ${JSON} NAME)
-    add_custom_command(TARGET Sandbox POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${JSON}"
-            "$<TARGET_FILE_DIR:Sandbox>/${JSON_NAME}"
-        COMMENT "Copying ${JSON_NAME} to Sandbox output"
-    )
-endforeach()
+#Copy engine_config.json next to Sandbox.exe
+add_custom_command(TARGET Sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/engine_config.json"
+        "$<TARGET_FILE_DIR:Sandbox>/engine_config.json"
+    COMMENT "Copying engine_config.json to Sandbox output"
+)
+
+#Copy scene assets to Assets/Scenes, Unity-style
+add_custom_command(TARGET Sandbox POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "${OUTPUT_DIR}/Sandbox/Assets/Scenes"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets/Scenes"
+        "${OUTPUT_DIR}/Sandbox/Assets/Scenes"
+    COMMENT "Copying scenes to Sandbox output"
+)
