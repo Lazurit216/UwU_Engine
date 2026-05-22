@@ -6,6 +6,7 @@
 #include "imgui.h"
 #include "imgui_impl_dx12.h"
 #include "imgui_impl_win32.h"
+#include "ImGuizmo.h"
 
 namespace UwU_Engine
 {
@@ -110,6 +111,7 @@ namespace UwU_Engine
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         m_data->contextCreated = true;
+        ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
 
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -175,6 +177,7 @@ namespace UwU_Engine
         ImGui_ImplDX12_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
     }
 
     void ImGuiLayer::EndFrame(DX12Renderer& renderer)

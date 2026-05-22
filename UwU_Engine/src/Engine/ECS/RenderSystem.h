@@ -6,6 +6,7 @@
 #include "Engine/ECS/RenderResourceBinder.h"
 #include "Engine/ECS/SpatialGrid.h"
 #include "Engine/ECS/System.h"
+#include "Engine/ECS/TransformHierarchy.h"
 #include "Engine/Renderer/IRenderer.h"
 
 namespace UwU_Engine
@@ -128,69 +129,22 @@ namespace UwU_Engine
 
         ObjectTransform ToObjectTransform(World& world, EntityId entity, const TransformComponent& transform) const
         {
+            const TransformComponent worldTransform = BuildWorldTransform(world, entity, transform);
+
             ObjectTransform local;
-            local.x = transform.x;
-            local.y = transform.y;
-            local.z = transform.z;
+            local.x = worldTransform.x;
+            local.y = worldTransform.y;
+            local.z = worldTransform.z;
             local.rotation = 0.0f;
-            local.rotationX = transform.rotationX;
-            local.rotationY = transform.rotationY;
-            local.rotationZ = transform.rotationZ;
+            local.rotationX = worldTransform.rotationX;
+            local.rotationY = worldTransform.rotationY;
+            local.rotationZ = worldTransform.rotationZ;
             local.scale = 1.0f;
-            local.scaleX = transform.scaleX;
-            local.scaleY = transform.scaleY;
-            local.scaleZ = transform.scaleZ;
+            local.scaleX = worldTransform.scaleX;
+            local.scaleY = worldTransform.scaleY;
+            local.scaleZ = worldTransform.scaleZ;
 
-            return CombineWithParents(world, entity, local, 0);
-        }
-
-        ObjectTransform CombineWithParents(World& world, EntityId entity, ObjectTransform local, int depth) const
-        {
-            if (depth > 32)
-                return local;
-
-            const HierarchyComponent* hierarchy = world.GetComponent<HierarchyComponent>(entity);
-            if (!hierarchy || hierarchy->parent == kInvalidEntity || !world.IsAlive(hierarchy->parent))
-                return local;
-
-            const TransformComponent* parentTransform = world.GetComponent<TransformComponent>(hierarchy->parent);
-            if (!parentTransform)
-                return local;
-
-            ObjectTransform parent;
-            parent.x = parentTransform->x;
-            parent.y = parentTransform->y;
-            parent.z = parentTransform->z;
-            parent.rotation = 0.0f;
-            parent.rotationX = parentTransform->rotationX;
-            parent.rotationY = parentTransform->rotationY;
-            parent.rotationZ = parentTransform->rotationZ;
-            parent.scale = 1.0f;
-            parent.scaleX = parentTransform->scaleX;
-            parent.scaleY = parentTransform->scaleY;
-            parent.scaleZ = parentTransform->scaleZ;
-            parent = CombineWithParents(world, hierarchy->parent, parent, depth + 1);
-
-            const float parentRotationZ = parent.rotation + parent.rotationZ;
-            const float localRotationZ = local.rotation + local.rotationZ;
-            const float scaledX = local.x * parent.scale * parent.scaleX;
-            const float scaledY = local.y * parent.scale * parent.scaleY;
-            const float c = std::cos(parentRotationZ);
-            const float s = std::sin(parentRotationZ);
-
-            ObjectTransform worldTransform;
-            worldTransform.x = parent.x + scaledX * c - scaledY * s;
-            worldTransform.y = parent.y + scaledX * s + scaledY * c;
-            worldTransform.z = parent.z + local.z * parent.scale * parent.scaleZ;
-            worldTransform.rotation = 0.0f;
-            worldTransform.rotationX = parent.rotationX + local.rotationX;
-            worldTransform.rotationY = parent.rotationY + local.rotationY;
-            worldTransform.rotationZ = parentRotationZ + localRotationZ;
-            worldTransform.scale = parent.scale * local.scale;
-            worldTransform.scaleX = parent.scaleX * local.scaleX;
-            worldTransform.scaleY = parent.scaleY * local.scaleY;
-            worldTransform.scaleZ = parent.scaleZ * local.scaleZ;
-            return worldTransform;
+            return local;
         }
 
         CameraViewData FindActiveCamera(World& world, IRenderer* renderer) const

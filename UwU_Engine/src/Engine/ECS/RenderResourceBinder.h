@@ -186,7 +186,13 @@ namespace UwU_Engine
                 SetShaderPath(mesh, asset.material.shaderPath);
 
             if (asset.hasTexturePath)
+            {
                 SetTexturePath(mesh, asset.material.texturePath);
+            }
+            else
+            {
+                SetTexturePath(mesh, {});
+            }
 
             const bool shaderSettingsChanged =
                 mesh.material.vertexEntry != asset.material.vertexEntry
@@ -240,9 +246,9 @@ namespace UwU_Engine
         {
             for (Vertex& vertex : mesh.vertices)
             {
-                vertex.color[0] *= color.r;
-                vertex.color[1] *= color.g;
-                vertex.color[2] *= color.b;
+                vertex.color[0] = color.r;
+                vertex.color[1] = color.g;
+                vertex.color[2] = color.b;
             }
         }
 

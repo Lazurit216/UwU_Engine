@@ -76,6 +76,31 @@ namespace UwU_Engine
         m_world.Clear();
     }
 
+    bool GameplayState::SaveSceneToFile(const std::string& scenePath)
+    {
+        return m_sceneSerializer.Save(m_world, scenePath);
+    }
+
+    bool GameplayState::LoadSceneFromFile(const std::string& scenePath)
+    {
+        m_renderSystem.Shutdown(m_world);
+        m_physicsDebugRenderSystem.Shutdown();
+
+        if (!m_sceneSerializer.Load(m_world, scenePath, m_shaderPath))
+            return false;
+
+        m_scenePath = scenePath;
+        m_sceneSavePath = MakeSceneSavePath(m_scenePath);
+        BindDemoSceneEntities();
+        UWU_ENGINE_INFO("[Gameplay] Scene loaded from editor menu: '{}'", m_scenePath);
+        return true;
+    }
+
+    void GameplayState::UpdateEditorCamera(const StateContext& ctx, float dt)
+    {
+        m_cameraSystem.Update(m_world, ctx.input, dt);
+    }
+
     bool GameplayState::OnEvent(const StateContext& ctx, Event& e)
     {
         EventDispatcher d(e);

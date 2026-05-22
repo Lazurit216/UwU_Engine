@@ -1,6 +1,7 @@
 #include "uwupch.h"
 #include "PhysicsDebugRenderSystem.h"
 
+#include "Engine/ECS/TransformHierarchy.h"
 #include "Engine/Renderer/MeshGeometry.h"
 
 namespace UwU_Engine
@@ -14,18 +15,19 @@ namespace UwU_Engine
         std::unordered_set<EntityId> aliveDebugEntities;
 
         world.ForEach<TransformComponent, ColliderComponent>(
-            [this, renderer, &camera, &aliveDebugEntities](EntityId entity, TransformComponent& transform, ColliderComponent& collider)
+            [this, renderer, &world, &camera, &aliveDebugEntities](EntityId entity, TransformComponent& transform, ColliderComponent& collider)
             {
                 aliveDebugEntities.insert(entity);
+                const TransformComponent worldTransform = BuildWorldTransform(world, entity, transform);
 
-                if (!EnsureDrawable(entity, transform, collider, renderer))
+                if (!EnsureDrawable(entity, worldTransform, collider, renderer))
                     return;
 
                 auto it = m_drawables.find(entity);
                 if (it == m_drawables.end() || !it->second.drawable || !it->second.drawable->IsReady())
                     return;
 
-                it->second.drawable->SetTransform(BuildTransform(transform, collider, camera));
+                it->second.drawable->SetTransform(BuildTransform(worldTransform, collider, camera));
                 it->second.drawable->Draw();
             });
 

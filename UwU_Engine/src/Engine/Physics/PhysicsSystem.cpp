@@ -1,6 +1,8 @@
 #include "uwupch.h"
 #include "PhysicsSystem.h"
 
+#include "Engine/ECS/TransformHierarchy.h"
+
 namespace UwU_Engine
 {
     namespace
@@ -75,6 +77,8 @@ namespace UwU_Engine
                     acceleration += m_gravity;
 
                 body.velocity += acceleration * fixedDt;
+                if (!body.useGravity && std::abs(acceleration.y) <= 0.0001f)
+                    body.velocity.y = 0.0f;
 
                 if (body.linearDamping > 0.0f)
                 {
@@ -103,6 +107,13 @@ namespace UwU_Engine
                     ResolveCollision(m_contacts.back(), objects[i], objects[j]);
             }
         }
+
+        world.ForEach<RigidbodyComponent>(
+            [](EntityId /*entity*/, RigidbodyComponent& body)
+            {
+                if (!body.isStatic && !body.useGravity && body.velocity.y < 0.0f)
+                    body.velocity.y = 0.0f;
+            });
 
         PublishEvents();
         m_previousPairs = m_currentPairs;
@@ -184,6 +195,7 @@ namespace UwU_Engine
                 objects.push_back(PhysicsObject{
                     entity,
                     &transform,
+                    BuildWorldTransform(world, entity, transform),
                     &collider,
                     world.GetComponent<RigidbodyComponent>(entity)
                     });
@@ -220,8 +232,8 @@ namespace UwU_Engine
 
     bool PhysicsSystem::DetectAabbVsAabb(const PhysicsObject& a, const PhysicsObject& b, PhysicsContact& outContact) const
     {
-        const Aabb aabbA = ComputeWorldAabb(*a.transform, *a.collider);
-        const Aabb aabbB = ComputeWorldAabb(*b.transform, *b.collider);
+        const Aabb aabbA = ComputeWorldAabb(a.worldTransform, *a.collider);
+        const Aabb aabbB = ComputeWorldAabb(b.worldTransform, *b.collider);
         const Vector3 delta = aabbA.center - aabbB.center;
 
         const float overlapX = (aabbA.halfExtents.x + aabbB.halfExtents.x) - std::abs(delta.x);
@@ -253,10 +265,10 @@ namespace UwU_Engine
 
     bool PhysicsSystem::DetectSphereVsSphere(const PhysicsObject& a, const PhysicsObject& b, PhysicsContact& outContact) const
     {
-        const Vector3 centerA = ComputeWorldCenter(*a.transform, *a.collider);
-        const Vector3 centerB = ComputeWorldCenter(*b.transform, *b.collider);
-        const float radiusA = ComputeWorldSphereRadius(*a.transform, *a.collider);
-        const float radiusB = ComputeWorldSphereRadius(*b.transform, *b.collider);
+        const Vector3 centerA = ComputeWorldCenter(a.worldTransform, *a.collider);
+        const Vector3 centerB = ComputeWorldCenter(b.worldTransform, *b.collider);
+        const float radiusA = ComputeWorldSphereRadius(a.worldTransform, *a.collider);
+        const float radiusB = ComputeWorldSphereRadius(b.worldTransform, *b.collider);
         const Vector3 delta = centerA - centerB;
         const float distanceSq = LengthSquared(delta);
         const float radiusSum = radiusA + radiusB;
@@ -274,11 +286,11 @@ namespace UwU_Engine
 
     bool PhysicsSystem::DetectSphereVsBox(const PhysicsObject& sphere, const PhysicsObject& box, PhysicsContact& outContact) const
     {
-        const Vector3 sphereCenter = ComputeWorldCenter(*sphere.transform, *sphere.collider);
-        const float radius = ComputeWorldSphereRadius(*sphere.transform, *sphere.collider);
-        const Vector3 boxCenter = ComputeWorldCenter(*box.transform, *box.collider);
-        const Vector3 boxHalfExtents = BoxHalfExtentsOf(*box.transform, *box.collider);
-        const Matrix4 rotation = RotationOf(*box.transform);
+        const Vector3 sphereCenter = ComputeWorldCenter(sphere.worldTransform, *sphere.collider);
+        const float radius = ComputeWorldSphereRadius(sphere.worldTransform, *sphere.collider);
+        const Vector3 boxCenter = ComputeWorldCenter(box.worldTransform, *box.collider);
+        const Vector3 boxHalfExtents = BoxHalfExtentsOf(box.worldTransform, *box.collider);
+        const Matrix4 rotation = RotationOf(box.worldTransform);
         const Vector3 axes[3] = {
             AxisOf(rotation, 0),
             AxisOf(rotation, 1),

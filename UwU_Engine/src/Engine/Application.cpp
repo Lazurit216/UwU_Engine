@@ -7,36 +7,8 @@
 #include "Engine/Editor/ImGuiLayer.h"
 #include "Renderer/DirectX12/DX12Renderer.h" 
 
-#include "imgui.h"
-
 namespace UwU_Engine 
 {
-	namespace
-	{
-		bool IsMouseInputEvent(EventType type)
-		{
-			return type == EventType::MouseMoved
-				|| type == EventType::MouseButtonPressed
-				|| type == EventType::MouseButtonReleased
-				|| type == EventType::MouseWheel;
-		}
-
-		bool IsKeyboardInputEvent(EventType type)
-		{
-			return type == EventType::KeyPressed || type == EventType::KeyReleased;
-		}
-
-		bool ImGuiWantsEvent(Event& e)
-		{
-			if (!ImGui::GetCurrentContext())
-				return false;
-
-			const ImGuiIO& io = ImGui::GetIO();
-			return (IsMouseInputEvent(e.GetType()) && io.WantCaptureMouse)
-				|| (IsKeyboardInputEvent(e.GetType()) && io.WantCaptureKeyboard);
-		}
-	}
-
 	Application::Application() = default;
 
 	Application::~Application()
@@ -175,12 +147,6 @@ namespace UwU_Engine
 		d.Dispatch<WindowMaximizeEvent>(std::bind(&Application::OnWindowMaximize, this, std::placeholders::_1, idx), EventType::WindowMaximize);
 		d.Dispatch<WindowRestoreEvent>(std::bind(&Application::OnWindowRestore, this, std::placeholders::_1, idx), EventType::WindowRestore);
 		d.Dispatch<WindowResizeEvent>(std::bind(&Application::OnWindowResize, this, std::placeholders::_1, idx), EventType::WindowResize);
-
-		if (idx == 0 && ImGuiWantsEvent(e))
-		{
-			e.Handled = true;
-			return;
-		}
 
 		m_contexts[idx].input.OnEvent(e);
 

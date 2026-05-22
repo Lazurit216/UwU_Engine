@@ -30,6 +30,7 @@ namespace UwU_Engine
         {
             EntityId entity = kInvalidEntity;
             TransformComponent* transform = nullptr;
+            TransformComponent worldTransform;
             ColliderComponent* collider = nullptr;
             RigidbodyComponent* rigidbody = nullptr;
         };

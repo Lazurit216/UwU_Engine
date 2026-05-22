@@ -42,6 +42,7 @@ endforeach()
 
 target_include_directories(UwU_Engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(UwU_Engine PRIVATE UWU_BUILD_DLL UWU_PLATFORM_WINDOWS NOMINMAX)
+target_link_libraries(UwU_Engine PRIVATE shell32)
 
 set(UWU_EXTERNAL_LIBS_DIR "${CMAKE_SOURCE_DIR}/ExternalLibs")
 

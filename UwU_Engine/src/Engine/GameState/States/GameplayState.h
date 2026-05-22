@@ -38,6 +38,10 @@ namespace UwU_Engine
         const World& GetWorld() const { return m_world; }
         bool IsPhysicsDebugVisible() const { return m_physicsDebugRenderSystem.IsVisible(); }
         void SetPhysicsDebugVisible(bool visible) { m_physicsDebugRenderSystem.SetVisible(visible); }
+        size_t GetPhysicsContactCount() const { return m_physicsSystem.GetContacts().size(); }
+        bool SaveSceneToFile(const std::string& scenePath);
+        bool LoadSceneFromFile(const std::string& scenePath);
+        void UpdateEditorCamera(const StateContext& ctx, float dt);
 
     private:
         void OnKeyPressed(KeyPressedEvent& ke);
