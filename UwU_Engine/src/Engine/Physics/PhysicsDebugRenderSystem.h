@@ -22,7 +22,7 @@ namespace UwU_Engine
         {
             std::unique_ptr<IDrawable> drawable;
             ColliderType type = ColliderType::Box;
-            Vector3 halfExtents;
+            Vector3 halfExtents{ 0.0f, 0.0f, 0.0f };
             float radius = 0.0f;
         };
 

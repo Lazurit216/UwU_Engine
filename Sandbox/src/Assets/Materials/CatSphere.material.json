@@ -1,0 +1,9 @@
+{
+  "color": [ 1.0, 1.0, 1.0, 1.0 ],
+  "shaderPath": "../Shaders/phong_test_light.hlsl",
+  "texturePath": "../Textures/cat.png",
+  "vertexEntry": "VS",
+  "pixelEntry": "PS",
+  "vertexProfile": "vs_5_0",
+  "pixelProfile": "ps_5_0"
+}

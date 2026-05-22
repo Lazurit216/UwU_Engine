@@ -45,6 +45,19 @@ target_compile_definitions(UwU_Engine PRIVATE UWU_BUILD_DLL UWU_PLATFORM_WINDOWS
 
 set(UWU_EXTERNAL_LIBS_DIR "${CMAKE_SOURCE_DIR}/ExternalLibs")
 
+set(UWU_GLM_INCLUDE_DIR "${UWU_EXTERNAL_LIBS_DIR}")
+if(EXISTS "${UWU_GLM_INCLUDE_DIR}/glm/glm.hpp")
+    target_include_directories(UwU_Engine PUBLIC "${UWU_GLM_INCLUDE_DIR}")
+    target_compile_definitions(UwU_Engine PUBLIC
+        GLM_FORCE_LEFT_HANDED
+        GLM_FORCE_DEPTH_ZERO_TO_ONE
+        GLM_FORCE_RADIANS
+    )
+    message(STATUS "GLM enabled from ${UWU_GLM_INCLUDE_DIR}/glm")
+else()
+    message(FATAL_ERROR "GLM headers not found in ${UWU_GLM_INCLUDE_DIR}/glm")
+endif()
+
 set(UWU_NLOHMANN_JSON_INCLUDE_DIR "${UWU_EXTERNAL_LIBS_DIR}/nlohmann_json/include")
 if(EXISTS "${UWU_NLOHMANN_JSON_INCLUDE_DIR}/nlohmann/json.hpp")
     target_include_directories(UwU_Engine PRIVATE "${UWU_NLOHMANN_JSON_INCLUDE_DIR}")

@@ -55,6 +55,11 @@ namespace UwU_Engine
                 meshData.vertices[i].position[1],
                 meshData.vertices[i].position[2]
             };
+            vertices[i].Normal = {
+                meshData.vertices[i].normal[0],
+                meshData.vertices[i].normal[1],
+                meshData.vertices[i].normal[2]
+            };
             vertices[i].Color = {
                 meshData.vertices[i].color[0],
                 meshData.vertices[i].color[1],
@@ -107,8 +112,9 @@ namespace UwU_Engine
     {
         return {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
     }
 }

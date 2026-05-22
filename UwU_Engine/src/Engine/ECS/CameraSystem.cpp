@@ -10,17 +10,11 @@ namespace UwU_Engine
     {
         Vector3 TransformDirection(const TransformComponent& transform, const Vector3& direction)
         {
-            const DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationRollPitchYaw(
+            const Matrix4 rotation = RotationMatrix(
                 transform.rotationX,
                 transform.rotationY,
                 transform.rotationZ);
-            const DirectX::XMVECTOR rotated = DirectX::XMVector3TransformNormal(
-                DirectX::XMVectorSet(direction.x, direction.y, direction.z, 0.0f),
-                rotation);
-
-            DirectX::XMFLOAT3 result;
-            DirectX::XMStoreFloat3(&result, rotated);
-            return Normalize(Vector3{ result.x, result.y, result.z });
+            return Normalize(UwU_Engine::TransformDirection(rotation, direction));
         }
     }
 
@@ -60,7 +54,7 @@ namespace UwU_Engine
         const Vector3 right = TransformDirection(*transform, Vector3{ 1.0f, 0.0f, 0.0f });
         const Vector3 up = TransformDirection(*transform, Vector3{ 0.0f, 1.0f, 0.0f });
         const Vector3 forward = TransformDirection(*transform, Vector3{ 0.0f, 0.0f, 1.0f });
-        Vector3 move;
+        Vector3 move{ 0.0f, 0.0f, 0.0f };
 
         if (input->IsKeyDown('A')) move -= right;
         if (input->IsKeyDown('D')) move += right;
@@ -68,15 +62,11 @@ namespace UwU_Engine
         {
             if (input->IsKeyDown('W')) move += up;
             if (input->IsKeyDown('S')) move -= up;
-            if (input->IsKeyDown('E')) move += forward;
-            if (input->IsKeyDown('Q')) move -= forward;
         }
         else
         {
             if (input->IsKeyDown('W')) move += forward;
             if (input->IsKeyDown('S')) move -= forward;
-            if (input->IsKeyDown('E')) move += up;
-            if (input->IsKeyDown('Q')) move -= up;
         }
 
         if (LengthSquared(move) > 0.0001f)

@@ -40,7 +40,7 @@ namespace UwU_Engine
         bool DetectCollision(const PhysicsObject& a, const PhysicsObject& b, PhysicsContact& outContact) const;
         bool DetectAabbVsAabb(const PhysicsObject& a, const PhysicsObject& b, PhysicsContact& outContact) const;
         bool DetectSphereVsSphere(const PhysicsObject& a, const PhysicsObject& b, PhysicsContact& outContact) const;
-        bool DetectSphereVsAabb(const PhysicsObject& sphere, const PhysicsObject& box, PhysicsContact& outContact) const;
+        bool DetectSphereVsBox(const PhysicsObject& sphere, const PhysicsObject& box, PhysicsContact& outContact) const;
 
         void ResolveCollision(PhysicsContact& contact, const PhysicsObject& a, const PhysicsObject& b);
         void PublishEvents();

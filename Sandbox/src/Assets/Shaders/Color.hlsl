@@ -9,6 +9,7 @@ SamplerState gDiffuseSampler : register(s0);
 struct VertexIn
 {
     float3 PosL : POSITION;
+    float3 NormalL : NORMAL;
     float3 Color : COLOR;
     float2 TexCoord : TEXCOORD;
 };

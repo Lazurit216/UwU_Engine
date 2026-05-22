@@ -127,8 +127,8 @@ namespace UwU_Engine
 
     struct RigidbodyComponent
     {
-        Vector3 velocity;
-        Vector3 acceleration;
+        Vector3 velocity{ 0.0f, 0.0f, 0.0f };
+        Vector3 acceleration{ 0.0f, 0.0f, 0.0f };
         float mass = 1.0f;
         bool useGravity = true;
         bool isStatic = false;
@@ -140,7 +140,7 @@ namespace UwU_Engine
         ColliderType type = ColliderType::Box;
         Vector3 halfExtents{ 0.5f, 0.5f, 0.5f };
         float radius = 0.5f;
-        Vector3 offset;
+        Vector3 offset{ 0.0f, 0.0f, 0.0f };
         bool isTrigger = false;
         float bounciness = 0.0f;
         float friction = 0.2f;

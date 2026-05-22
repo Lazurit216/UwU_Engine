@@ -20,6 +20,7 @@ namespace UwU_Engine
         struct Vertex
         {
             DirectX::XMFLOAT3 Position;
+            DirectX::XMFLOAT3 Normal;
             DirectX::XMFLOAT3 Color;
             DirectX::XMFLOAT2 TexCoord;
         };

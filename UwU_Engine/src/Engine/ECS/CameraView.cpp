@@ -5,22 +5,31 @@ namespace UwU_Engine
 {
     namespace
     {
-        DirectX::XMVECTOR CameraForward(const TransformComponent& transform)
+        Vector3 CameraForward(const TransformComponent& transform)
         {
-            const DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationRollPitchYaw(
+            const Matrix4 rotation = RotationMatrix(
                 transform.rotationX,
                 transform.rotationY,
                 transform.rotationZ);
-            return DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rotation);
+            return Normalize(TransformDirection(rotation, Vector3{ 0.0f, 0.0f, 1.0f }));
         }
 
-        DirectX::XMVECTOR CameraUp(const TransformComponent& transform)
+        Vector3 CameraUp(const TransformComponent& transform)
         {
-            const DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationRollPitchYaw(
+            const Matrix4 rotation = RotationMatrix(
                 transform.rotationX,
                 transform.rotationY,
                 transform.rotationZ);
-            return DirectX::XMVector3TransformNormal(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotation);
+            return Normalize(TransformDirection(rotation, Vector3{ 0.0f, 1.0f, 0.0f }));
+        }
+
+        void CopyMatrixToRowMajorArray(const Matrix4& matrix, std::array<float, 16>& out)
+        {
+            for (int row = 0; row < 4; ++row)
+            {
+                for (int column = 0; column < 4; ++column)
+                    out[row * 4 + column] = matrix[column][row];
+            }
         }
     }
 
@@ -53,23 +62,17 @@ namespace UwU_Engine
 
                 const float nearPlane = (std::max)(camera.nearPlane, 0.001f);
                 const float farPlane = (std::max)(camera.farPlane, nearPlane + 1.0f);
-                const DirectX::XMVECTOR eye = DirectX::XMVectorSet(transform.x, transform.y, transform.z, 1.0f);
-                const DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixLookToLH(
+                const Vector3 eye{ transform.x, transform.y, transform.z };
+                const Matrix4 viewMatrix = glm::lookAtLH(
                     eye,
-                    CameraForward(transform),
+                    eye + CameraForward(transform),
                     CameraUp(transform));
 
-                const DirectX::XMMATRIX projectionMatrix = camera.orthographic
-                    ? DirectX::XMMatrixOrthographicLH(halfWidth * 2.0f, halfHeight * 2.0f, nearPlane, farPlane)
-                    : DirectX::XMMatrixPerspectiveFovLH(camera.fovYRadians, aspect, nearPlane, farPlane);
+                const Matrix4 projectionMatrix = camera.orthographic
+                    ? glm::orthoLH_ZO(-halfWidth, halfWidth, -halfHeight, halfHeight, nearPlane, farPlane)
+                    : glm::perspectiveLH_ZO(camera.fovYRadians, aspect, nearPlane, farPlane);
 
-                DirectX::XMFLOAT4X4 matrixData;
-                DirectX::XMStoreFloat4x4(&matrixData, viewMatrix * projectionMatrix);
-                for (int row = 0; row < 4; ++row)
-                {
-                    for (int column = 0; column < 4; ++column)
-                        view.viewProjection[row * 4 + column] = matrixData.m[row][column];
-                }
+                CopyMatrixToRowMajorArray(glm::transpose(projectionMatrix * viewMatrix), view.viewProjection);
             });
 
         return view;

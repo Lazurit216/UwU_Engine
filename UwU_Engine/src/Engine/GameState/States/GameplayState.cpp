@@ -124,7 +124,27 @@ namespace UwU_Engine
     void GameplayState::FixedUpdate(const StateContext& ctx, float fixedDt)
     {
         ApplyControlledPhysicsInput(ctx, fixedDt);
+        if (ctx.input && ctx.input->IsActionPressed("PushSphere"))
+        {
+            if (auto* sphereBody = m_world.GetComponent<RigidbodyComponent>(m_sphereEntity))
+            {
+                sphereBody->velocity.x += 2.8f;
+                sphereBody->velocity.y += 0.35f;
+                sphereBody->velocity.z += 1.2f;
+                UWU_ENGINE_INFO("[Gameplay] Applied impulse to Physics sphere");
+            }
+        }
         m_physicsSystem.FixedUpdate(m_world, fixedDt);
+
+        auto* sphereTransform = m_world.GetComponent<TransformComponent>(m_sphereEntity);
+        const auto* sphereBody = m_world.GetComponent<RigidbodyComponent>(m_sphereEntity);
+        const auto* sphereCollider = m_world.GetComponent<ColliderComponent>(m_sphereEntity);
+        if (sphereTransform && sphereBody && sphereCollider && sphereCollider->type == ColliderType::Sphere)
+        {
+            const float radius = (std::max)(0.0001f, PhysicsSystem::ComputeWorldSphereRadius(*sphereTransform, *sphereCollider));
+            sphereTransform->rotationX += sphereBody->velocity.z / radius * fixedDt;
+            sphereTransform->rotationZ -= sphereBody->velocity.x / radius * fixedDt;
+        }
     }
 
     StateTransition GameplayState::Update(const StateContext& ctx, float dt)
@@ -210,18 +230,32 @@ namespace UwU_Engine
         m_platformEntity = CreatePrimitiveEntity(
             "Physics platform",
             PrimitiveType::Box,
-            TransformComponent{ 0.0f, -1.05f, 0.0f, 4.0f, 0.16f, 2.4f },
+            TransformComponent{ -0.85f, -0.85f, 0.0f, 1.8f, 0.16f, 2.4f },
             Color4{ 0.35f, 0.36f, 0.40f, 1.0f });
         m_world.AddComponent<RigidbodyComponent>(m_platformEntity, RigidbodyComponent{ {}, {}, 0.0f, false, true });
         m_world.AddComponent<ColliderComponent>(m_platformEntity, ColliderComponent{ ColliderType::Box, Vector3{ 0.5f, 0.5f, 0.5f } });
 
+        const EntityId rampEntity = CreatePrimitiveEntity(
+            "Inclined physics ramp",
+            PrimitiveType::Box,
+            TransformComponent{ 0.80f, -1.22f, 0.0f, 2.4f, 0.14f, 2.4f, 0.0f, 0.0f, -0.35f },
+            Color4{ 0.25f, 0.42f, 0.34f, 1.0f });
+        m_world.AddComponent<RigidbodyComponent>(rampEntity, RigidbodyComponent{ {}, {}, 0.0f, false, true });
+        m_world.AddComponent<ColliderComponent>(rampEntity, ColliderComponent{ ColliderType::Box, Vector3{ 0.5f, 0.5f, 0.5f }, 0.5f, {}, false, 0.0f, 0.08f });
+
         m_sphereEntity = CreatePrimitiveEntity(
             "Physics sphere",
             PrimitiveType::Sphere,
-            TransformComponent{ -0.45f, 0.65f, 0.0f, 0.35f, 0.35f, 0.35f },
-            Color4{ 0.20f, 0.95f, 1.0f, 1.0f });
+            TransformComponent{ -0.45f, -0.54f, 0.0f, 0.35f, 0.35f, 0.35f },
+            Color4{ 1.0f, 1.0f, 1.0f, 1.0f });
+        if (auto* sphereMesh = m_world.GetComponent<MeshRendererComponent>(m_sphereEntity))
+        {
+            sphereMesh->materialResourcePath = "Assets\\Materials\\CatSphere.material.json";
+            sphereMesh->material.shaderPath = L"Assets\\Shaders\\phong_test_light.hlsl";
+            sphereMesh->material.texturePath = "Assets\\Textures\\cat.png";
+        }
         m_world.AddComponent<RigidbodyComponent>(m_sphereEntity, RigidbodyComponent{ {}, {}, 1.0f, true, false, 0.15f });
-        m_world.AddComponent<ColliderComponent>(m_sphereEntity, ColliderComponent{ ColliderType::Sphere, Vector3{ 0.5f, 0.5f, 0.5f }, 0.5f });
+        m_world.AddComponent<ColliderComponent>(m_sphereEntity, ColliderComponent{ ColliderType::Sphere, Vector3{ 0.5f, 0.5f, 0.5f }, 0.5f, {}, false, 0.1f, 0.08f });
 
         m_boxEntity = CreatePrimitiveEntity(
             "Physics box",
@@ -360,7 +394,7 @@ namespace UwU_Engine
         if (!transform || !rigidbody || !controller || rigidbody->isStatic)
             return;
 
-        Vector3 move;
+        Vector3 move{ 0.0f, 0.0f, 0.0f };
         if (ctx.input->IsActionDown("PlayerMoveLeft"))     move.x -= 1.0f;
         if (ctx.input->IsActionDown("PlayerMoveRight"))    move.x += 1.0f;
         if (ctx.input->IsActionDown("PlayerMoveForward"))  move.z += 1.0f;
@@ -393,6 +427,7 @@ namespace UwU_Engine
         input->BindAction("PlayerMoveForward", { VK_UP });
         input->BindAction("PlayerMoveBackward", { VK_DOWN });
         input->BindAction("PlayerJump", { VK_SPACE });
+        input->BindAction("PushSphere", { 'F' });
     }
 
     void GameplayState::SetupPhysicsEventLogging()

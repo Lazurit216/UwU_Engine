@@ -78,7 +78,7 @@
     {
       "id": 6,
       "tag": { "name": "Shiba model" },
-      "transform": { "x": 0.85, "y": 0.18, "z": 0.0, "rotationX": 0.0, "rotationY": 1.5708, "rotationZ": 0.0, "scaleX": 1.25, "scaleY": 1.25, "scaleZ": 1.25 },
+      "transform": { "x": -1.25, "y": -0.32, "z": -0.05, "rotationX": 0.0, "rotationY": 1.5708, "rotationZ": 0.0, "scaleX": 1.25, "scaleY": 1.25, "scaleZ": 1.25 },
       "meshRenderer": {
         "primitive": "CustomMesh",
         "meshPath": "Assets\\Models\\Shiba\\Shiba.obj",
@@ -112,7 +112,7 @@
     {
       "id": 7,
       "tag": { "name": "Static Shiba model" },
-      "transform": { "x": -1.05, "y": 0.28, "z": 0.0, "rotationX": 0.0, "rotationY": 1.5708, "rotationZ": 0.0, "scaleX": 0.75, "scaleY": 0.75, "scaleZ": 0.75 },
+      "transform": { "x": 1.10, "y": 0.10, "z": 0.55, "rotationX": 0.0, "rotationY": 1.5708, "rotationZ": 0.0, "scaleX": 0.75, "scaleY": 0.75, "scaleZ": 0.75 },
       "meshRenderer": {
         "primitive": "CustomMesh",
         "meshPath": "Assets\\Models\\Shiba\\Shiba.obj",
@@ -125,7 +125,7 @@
     {
       "id": 8,
       "tag": { "name": "Physics platform" },
-      "transform": { "x": 0.0, "y": -1.05, "z": 0.0, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 4.0, "scaleY": 0.16, "scaleZ": 2.4 },
+      "transform": { "x": -0.85, "y": -0.85, "z": 0.0, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 1.8, "scaleY": 0.16, "scaleZ": 2.4 },
       "meshRenderer": {
         "primitive": "Box",
         "meshPath": "",
@@ -155,14 +155,14 @@
     {
       "id": 9,
       "tag": { "name": "Physics sphere" },
-      "transform": { "x": -0.45, "y": 0.65, "z": 0.0, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 0.35, "scaleY": 0.35, "scaleZ": 0.35 },
+      "transform": { "x": -0.45, "y": -0.54, "z": 0.0, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 0.35, "scaleY": 0.35, "scaleZ": 0.35 },
       "meshRenderer": {
         "primitive": "Sphere",
         "meshPath": "",
-        "materialPath": "",
+        "materialPath": "Assets\\Materials\\CatSphere.material.json",
         "shaderPath": "",
         "texturePath": "",
-        "color": [ 0.20, 0.95, 1.0, 1.0 ]
+        "color": [ 1.0, 1.0, 1.0, 1.0 ]
       },
       "rigidbody": {
         "velocity": [ 0.0, 0.0, 0.0 ],
@@ -179,13 +179,13 @@
         "offset": [ 0.0, 0.0, 0.0 ],
         "isTrigger": false,
         "bounciness": 0.1,
-        "friction": 0.25
+        "friction": 0.08
       }
     },
     {
       "id": 10,
       "tag": { "name": "Physics box" },
-      "transform": { "x": 0.45, "y": 0.75, "z": 0.18, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 0.38, "scaleY": 0.38, "scaleZ": 0.38 },
+      "transform": { "x": 0.55, "y": 0.70, "z": 0.18, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 0.38, "scaleY": 0.38, "scaleZ": 0.38 },
       "meshRenderer": {
         "primitive": "Box",
         "meshPath": "",
@@ -210,6 +210,36 @@
         "isTrigger": false,
         "bounciness": 0.05,
         "friction": 0.35
+      }
+    },
+    {
+      "id": 11,
+      "tag": { "name": "Inclined physics ramp" },
+      "transform": { "x": 0.80, "y": -1.22, "z": 0.0, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": -0.35, "scaleX": 2.4, "scaleY": 0.14, "scaleZ": 2.4 },
+      "meshRenderer": {
+        "primitive": "Box",
+        "meshPath": "",
+        "materialPath": "",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 0.25, 0.42, 0.34, 1.0 ]
+      },
+      "rigidbody": {
+        "velocity": [ 0.0, 0.0, 0.0 ],
+        "acceleration": [ 0.0, 0.0, 0.0 ],
+        "mass": 0.0,
+        "useGravity": false,
+        "isStatic": true,
+        "linearDamping": 0.0
+      },
+      "collider": {
+        "type": "Box",
+        "halfExtents": [ 0.5, 0.5, 0.5 ],
+        "radius": 0.5,
+        "offset": [ 0.0, 0.0, 0.0 ],
+        "isTrigger": false,
+        "bounciness": 0.0,
+        "friction": 0.08
       }
     }
   ]

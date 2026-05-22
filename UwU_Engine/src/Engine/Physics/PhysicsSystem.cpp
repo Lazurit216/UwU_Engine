@@ -21,23 +21,36 @@ namespace UwU_Engine
             transform.z += delta.z;
         }
 
-        DirectX::XMMATRIX RotationOf(const TransformComponent& transform)
+        Matrix4 RotationOf(const TransformComponent& transform)
         {
-            return DirectX::XMMatrixRotationRollPitchYaw(
+            return RotationMatrix(
                 transform.rotationX,
                 transform.rotationY,
                 transform.rotationZ);
         }
 
-        Vector3 RotateVector(const Vector3& value, const DirectX::XMMATRIX& rotation)
+        Vector3 RotateVector(const Vector3& value, const Matrix4& rotation)
         {
-            const DirectX::XMVECTOR rotated = DirectX::XMVector3TransformNormal(
-                DirectX::XMVectorSet(value.x, value.y, value.z, 0.0f),
-                rotation);
+            return TransformDirection(rotation, value);
+        }
 
-            DirectX::XMFLOAT3 result;
-            DirectX::XMStoreFloat3(&result, rotated);
-            return { result.x, result.y, result.z };
+        Vector3 AxisOf(const Matrix4& rotation, int column)
+        {
+            return Normalize(Vector3{
+                rotation[column][0],
+                rotation[column][1],
+                rotation[column][2]
+                });
+        }
+
+        Vector3 BoxHalfExtentsOf(const TransformComponent& transform, const ColliderComponent& collider)
+        {
+            const Vector3 scale = ScaleOf(transform);
+            return {
+                collider.halfExtents.x * scale.x,
+                collider.halfExtents.y * scale.y,
+                collider.halfExtents.z * scale.z
+            };
         }
     }
 
@@ -126,16 +139,14 @@ namespace UwU_Engine
             collider.halfExtents.z * scale.z
         };
 
-        const DirectX::XMMATRIX rotation = RotationOf(transform);
-        DirectX::XMFLOAT4X4 matrix;
-        DirectX::XMStoreFloat4x4(&matrix, rotation);
+        const Matrix4 rotation = RotationOf(transform);
 
         return Aabb{
             center,
             Vector3{
-                std::abs(matrix._11) * localHalf.x + std::abs(matrix._21) * localHalf.y + std::abs(matrix._31) * localHalf.z,
-                std::abs(matrix._12) * localHalf.x + std::abs(matrix._22) * localHalf.y + std::abs(matrix._32) * localHalf.z,
-                std::abs(matrix._13) * localHalf.x + std::abs(matrix._23) * localHalf.y + std::abs(matrix._33) * localHalf.z
+                std::abs(rotation[0][0]) * localHalf.x + std::abs(rotation[1][0]) * localHalf.y + std::abs(rotation[2][0]) * localHalf.z,
+                std::abs(rotation[0][1]) * localHalf.x + std::abs(rotation[1][1]) * localHalf.y + std::abs(rotation[2][1]) * localHalf.z,
+                std::abs(rotation[0][2]) * localHalf.x + std::abs(rotation[1][2]) * localHalf.y + std::abs(rotation[2][2]) * localHalf.z
             }
         };
     }
@@ -191,11 +202,11 @@ namespace UwU_Engine
             return DetectSphereVsSphere(a, b, outContact);
 
         if (a.collider->type == ColliderType::Sphere && b.collider->type == ColliderType::Box)
-            return DetectSphereVsAabb(a, b, outContact);
+            return DetectSphereVsBox(a, b, outContact);
 
         if (a.collider->type == ColliderType::Box && b.collider->type == ColliderType::Sphere)
         {
-            if (!DetectSphereVsAabb(b, a, outContact))
+            if (!DetectSphereVsBox(b, a, outContact))
                 return false;
 
             std::swap(outContact.a, outContact.b);
@@ -260,12 +271,29 @@ namespace UwU_Engine
         return true;
     }
 
-    bool PhysicsSystem::DetectSphereVsAabb(const PhysicsObject& sphere, const PhysicsObject& box, PhysicsContact& outContact) const
+    bool PhysicsSystem::DetectSphereVsBox(const PhysicsObject& sphere, const PhysicsObject& box, PhysicsContact& outContact) const
     {
         const Vector3 sphereCenter = ComputeWorldCenter(*sphere.transform, *sphere.collider);
         const float radius = ComputeWorldSphereRadius(*sphere.transform, *sphere.collider);
-        const Aabb boxAabb = ComputeWorldAabb(*box.transform, *box.collider);
-        const Vector3 closest = Clamp(sphereCenter, boxAabb.Min(), boxAabb.Max());
+        const Vector3 boxCenter = ComputeWorldCenter(*box.transform, *box.collider);
+        const Vector3 boxHalfExtents = BoxHalfExtentsOf(*box.transform, *box.collider);
+        const Matrix4 rotation = RotationOf(*box.transform);
+        const Vector3 axes[3] = {
+            AxisOf(rotation, 0),
+            AxisOf(rotation, 1),
+            AxisOf(rotation, 2)
+        };
+
+        const Vector3 centerDelta = sphereCenter - boxCenter;
+        Vector3 closest = boxCenter;
+        for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
+        {
+            const float projection = Dot(centerDelta, axes[axisIndex]);
+            const float extent = boxHalfExtents[axisIndex];
+            const float clamped = std::clamp(projection, -extent, extent);
+            closest += axes[axisIndex] * clamped;
+        }
+
         Vector3 delta = sphereCenter - closest;
         float distanceSq = LengthSquared(delta);
 
@@ -283,27 +311,21 @@ namespace UwU_Engine
             return true;
         }
 
-        const Vector3 local = sphereCenter - boxAabb.center;
-        const Vector3 remaining{
-            boxAabb.halfExtents.x - std::abs(local.x),
-            boxAabb.halfExtents.y - std::abs(local.y),
-            boxAabb.halfExtents.z - std::abs(local.z)
-        };
-
-        outContact.penetration = remaining.x + radius;
-        outContact.normal = { local.x >= 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f };
-
-        if (remaining.y < remaining.x && remaining.y <= remaining.z)
+        float smallestRemaining = std::numeric_limits<float>::max();
+        Vector3 normal = axes[1];
+        for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
         {
-            outContact.penetration = remaining.y + radius;
-            outContact.normal = { 0.0f, local.y >= 0.0f ? 1.0f : -1.0f, 0.0f };
-        }
-        else if (remaining.z < remaining.x && remaining.z < remaining.y)
-        {
-            outContact.penetration = remaining.z + radius;
-            outContact.normal = { 0.0f, 0.0f, local.z >= 0.0f ? 1.0f : -1.0f };
+            const float projection = Dot(centerDelta, axes[axisIndex]);
+            const float remaining = boxHalfExtents[axisIndex] - std::abs(projection);
+            if (remaining < smallestRemaining)
+            {
+                smallestRemaining = remaining;
+                normal = axes[axisIndex] * (projection >= 0.0f ? 1.0f : -1.0f);
+            }
         }
 
+        outContact.penetration = smallestRemaining + radius;
+        outContact.normal = normal;
         return true;
     }
 
@@ -370,6 +392,22 @@ namespace UwU_Engine
 
         if (b.rigidbody && invMassB > 0.0f)
             b.rigidbody->velocity -= frictionImpulse * invMassB;
+
+        auto stabilizeRestingContact = [](RigidbodyComponent* body, const Vector3& outwardNormal)
+            {
+                if (!body)
+                    return;
+
+                const float normalSpeed = Dot(body->velocity, outwardNormal);
+                if (normalSpeed < 0.0f && std::abs(normalSpeed) < 0.35f)
+                    body->velocity -= outwardNormal * normalSpeed;
+            };
+
+        if (invMassA > 0.0f)
+            stabilizeRestingContact(a.rigidbody, contact.normal);
+
+        if (invMassB > 0.0f)
+            stabilizeRestingContact(b.rigidbody, contact.normal * -1.0f);
     }
 
     void PhysicsSystem::PublishEvents()
