@@ -83,7 +83,10 @@ protected:
             };
         auto makeMenu = [makeGameplay]() { return std::make_shared<MainMenuState>(makeGameplay); };
 
-        InitStateManager(std::make_shared<LoadingState>(makeMenu, 0.5f));
+        LoadingState::ScenePreloadDesc preloadDesc;
+        preloadDesc.scenePath = scenePath;
+        preloadDesc.fallbackShaderPath = shaderPath;
+        InitStateManager(std::make_shared<LoadingState>(makeMenu, std::move(preloadDesc), 0.2f));
 
         UWU_ENGINE_INFO("[Sandbox] OnInit complete - 2 windows, shared DX12 device");
         return true;

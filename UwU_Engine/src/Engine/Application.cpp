@@ -152,20 +152,17 @@ namespace UwU_Engine
 	void Application::OnWindowMinimize(WindowMinimizeEvent& e, int idx)
 	{
 		m_contexts[idx].minimized = true;
-		if (idx == 0) m_timer.Pause();
 		UWU_ENGINE_INFO("[App] Window {} minimized", idx);
 	}
 
 	void Application::OnWindowMaximize(WindowMaximizeEvent& e, int idx)
 	{
 		m_contexts[idx].minimized = false;
-		if (idx == 0) m_timer.Resume();
 	}
 
 	void Application::OnWindowRestore(WindowRestoreEvent& e, int idx)
 	{
 		m_contexts[idx].minimized = false;
-		if (idx == 0) m_timer.Resume();
 	}
 
 	void Application::OnWindowResize(WindowResizeEvent& e, int idx)
