@@ -51,8 +51,19 @@ namespace UwU_Engine
                 view.camera = camera;
 
                 const float zoom = (std::max)(camera.zoom, 0.01f);
-                const float halfWidth = (std::max)(camera.viewHalfWidth, camera.viewHalfHeight * aspect) / zoom;
-                const float halfHeight = camera.viewHalfHeight / zoom;
+                const float designHalfWidth = (std::max)(camera.viewHalfWidth, 0.01f);
+                const float designHalfHeight = (std::max)(camera.viewHalfHeight, 0.01f);
+                const float designAspect = designHalfWidth / designHalfHeight;
+
+                float halfWidth = designHalfWidth;
+                float halfHeight = designHalfHeight;
+                if (aspect >= designAspect)
+                    halfWidth = designHalfHeight * aspect;
+                else
+                    halfHeight = designHalfWidth / (std::max)(aspect, 0.01f);
+
+                halfWidth /= zoom;
+                halfHeight /= zoom;
                 view.visibleBounds = SpatialBounds2D{
                     transform.x - halfWidth,
                     transform.y - halfHeight,

@@ -52,6 +52,7 @@ namespace UwU_Engine
                 collider.halfExtents.z * scale.z
             };
         }
+
     }
 
     void PhysicsSystem::FixedUpdate(World& world, float fixedDt)

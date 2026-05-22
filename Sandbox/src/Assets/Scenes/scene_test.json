@@ -185,7 +185,7 @@
     {
       "id": 10,
       "tag": { "name": "Physics box" },
-      "transform": { "x": 0.55, "y": 0.70, "z": 0.18, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 0.38, "scaleY": 0.38, "scaleZ": 0.38 },
+      "transform": { "x": -1.55, "y": 0.70, "z": 0.18, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 0.38, "scaleY": 0.38, "scaleZ": 0.38 },
       "meshRenderer": {
         "primitive": "Box",
         "meshPath": "",
