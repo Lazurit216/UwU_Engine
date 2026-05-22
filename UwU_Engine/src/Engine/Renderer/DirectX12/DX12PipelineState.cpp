@@ -8,14 +8,15 @@ namespace UwU_Engine
         ID3D12RootSignature* rootSignature,
         const DX12Shader& vs,
         const DX12Shader& ps,
-        const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputLayout)
+        const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputLayout,
+        D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType)
     {
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
         psoDesc.InputLayout = { inputLayout.data(), (UINT)inputLayout.size() };
         psoDesc.pRootSignature = rootSignature;
         psoDesc.VS = { vs.ByteCode->GetBufferPointer(), vs.ByteCode->GetBufferSize() };
         psoDesc.PS = { ps.ByteCode->GetBufferPointer(), ps.ByteCode->GetBufferSize() };
-        psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        psoDesc.PrimitiveTopologyType = topologyType;
         psoDesc.NumRenderTargets = 1;
         psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;

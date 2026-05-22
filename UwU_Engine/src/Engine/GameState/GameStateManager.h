@@ -25,6 +25,7 @@ namespace UwU_Engine
         // Update() on the top state.
         // Returns false if the stack is empty (signal to quit).
         bool Update(const StateContext& ctx, float dt);
+        void FixedUpdate(const StateContext& ctx, float fixedDt);
 
         void OnEvent(const StateContext& ctx, Event& e);
 

@@ -2,6 +2,7 @@
 
 #include "Engine/Core.h"
 #include "Engine/ECS/Entity.h"
+#include "Engine/Physics/PhysicsTypes.h"
 #include "Engine/Renderer/IDrawable.h"
 #include "Engine/Resources/Resource.h"
 #include "Engine/Resources/ResourceTypes.h"
@@ -112,13 +113,42 @@ namespace UwU_Engine
     struct CameraComponent
     {
         bool primary = true;
+        bool orthographic = true;
         float zoom = 1.0f;
         float viewHalfWidth = 1.8f;
         float viewHalfHeight = 1.0f;
         float fovYRadians = 1.04719755f;
-        float nearPlane = 0.01f;
-        float farPlane = 100.0f;
+        float nearPlane = 0.001f;
+        float farPlane = 1000.0f;
         float moveSpeed = 0.8f;
         float zoomSpeed = 1.0f;
+        float rotateSpeed = 0.012f;
+    };
+
+    struct RigidbodyComponent
+    {
+        Vector3 velocity;
+        Vector3 acceleration;
+        float mass = 1.0f;
+        bool useGravity = true;
+        bool isStatic = false;
+        float linearDamping = 0.0f;
+    };
+
+    struct ColliderComponent
+    {
+        ColliderType type = ColliderType::Box;
+        Vector3 halfExtents{ 0.5f, 0.5f, 0.5f };
+        float radius = 0.5f;
+        Vector3 offset;
+        bool isTrigger = false;
+        float bounciness = 0.0f;
+        float friction = 0.2f;
+    };
+
+    struct PlayerControllerComponent
+    {
+        float moveSpeed = 1.4f;
+        float jumpSpeed = 3.0f;
     };
 }

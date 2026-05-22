@@ -45,6 +45,11 @@ namespace UwU_Engine
 			while (m_fixedAccumulator >= m_fixedStep)
 			{
 				OnFixedUpdate(m_fixedStep);
+				if (!m_contexts.empty() && m_contexts[0].active)
+				{
+					StateContext sCtx{ m_contexts[0].renderer.get(), &m_contexts[0].input };
+					m_stateManager.FixedUpdate(sCtx, m_fixedStep);
+				}
 				m_fixedAccumulator -= m_fixedStep;
 			}
 

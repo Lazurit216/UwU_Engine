@@ -54,6 +54,12 @@ namespace UwU_Engine
         }
     }
 
+    void GameStateManager::FixedUpdate(const StateContext& ctx, float fixedDt)
+    {
+        if (!m_stack.empty())
+            m_stack.back()->FixedUpdate(ctx, fixedDt);
+    }
+
     void GameStateManager::Render(const StateContext& ctx)
     {
         if (!m_stack.empty())

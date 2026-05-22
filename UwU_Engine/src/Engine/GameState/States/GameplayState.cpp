@@ -1,5 +1,6 @@
 #include "uwupch.h"
 #include "GameplayState.h"
+#include "Engine/Renderer/MeshGeometry.h"
 
 namespace UwU_Engine
 {
@@ -31,6 +32,9 @@ namespace UwU_Engine
         m_totalTime = m_logTimer = 0.f;
         m_frameCount = 0;
         m_pendingPush.reset();
+        BindInputActions(ctx.input);
+        SetupPhysicsEventLogging();
+        m_physicsDebugRenderSystem.SetShaderPath(m_shaderPath);
 
         m_renderSystem.Shutdown(m_world);
         if (m_scenePath.empty() || !m_sceneSerializer.Load(m_world, m_scenePath, m_shaderPath))
@@ -67,6 +71,8 @@ namespace UwU_Engine
     {
         UWU_ENGINE_INFO("[Gameplay] Exited after {:.2f}s, {} frames", m_totalTime, m_frameCount);
         m_renderSystem.Shutdown(m_world);
+        m_physicsDebugRenderSystem.Shutdown();
+        m_physicsSystem.ClearEventListeners();
         m_world.Clear();
     }
 
@@ -99,11 +105,26 @@ namespace UwU_Engine
         if (ke.GetKeyCode() == VK_F9)
         {
             m_renderSystem.Shutdown(m_world);
+            m_physicsDebugRenderSystem.Shutdown();
             if (!m_sceneSerializer.Load(m_world, m_sceneSavePath, m_shaderPath))
                 m_sceneSerializer.Load(m_world, m_scenePath, m_shaderPath);
             BindDemoSceneEntities();
             ke.Handled = true;
         }
+
+        if (ke.GetKeyCode() == VK_F3)
+        {
+            m_physicsDebugRenderSystem.ToggleVisible();
+            UWU_ENGINE_INFO("[Gameplay] Physics debug draw: {}",
+                m_physicsDebugRenderSystem.IsVisible() ? "enabled" : "disabled");
+            ke.Handled = true;
+        }
+    }
+
+    void GameplayState::FixedUpdate(const StateContext& ctx, float fixedDt)
+    {
+        ApplyControlledPhysicsInput(ctx, fixedDt);
+        m_physicsSystem.FixedUpdate(m_world, fixedDt);
     }
 
     StateTransition GameplayState::Update(const StateContext& ctx, float dt)
@@ -150,6 +171,7 @@ namespace UwU_Engine
         }
 
         m_renderSystem.Render(m_world, ctx.renderer);
+        m_physicsDebugRenderSystem.Render(m_world, ctx.renderer);
     }
 
     void GameplayState::BuildDemoScene()
@@ -161,6 +183,9 @@ namespace UwU_Engine
         m_spinnerEntity = kInvalidEntity;
         m_modelEntity = kInvalidEntity;
         m_cameraEntity = kInvalidEntity;
+        m_platformEntity = kInvalidEntity;
+        m_sphereEntity = kInvalidEntity;
+        m_boxEntity = kInvalidEntity;
 
         m_controlledEntity = CreateTriangleEntity(
             "Player triangle",
@@ -182,6 +207,32 @@ namespace UwU_Engine
             TransformComponent{ 0.15f, -0.42f, 0.0f, 0.30f, 0.30f, 1.0f, 0.0f, 0.0f, 0.35f },
             Color4{ 0.20f, 0.45f, 1.0f, 1.0f });
 
+        m_platformEntity = CreatePrimitiveEntity(
+            "Physics platform",
+            PrimitiveType::Box,
+            TransformComponent{ 0.0f, -1.05f, 0.0f, 4.0f, 0.16f, 2.4f },
+            Color4{ 0.35f, 0.36f, 0.40f, 1.0f });
+        m_world.AddComponent<RigidbodyComponent>(m_platformEntity, RigidbodyComponent{ {}, {}, 0.0f, false, true });
+        m_world.AddComponent<ColliderComponent>(m_platformEntity, ColliderComponent{ ColliderType::Box, Vector3{ 0.5f, 0.5f, 0.5f } });
+
+        m_sphereEntity = CreatePrimitiveEntity(
+            "Physics sphere",
+            PrimitiveType::Sphere,
+            TransformComponent{ -0.45f, 0.65f, 0.0f, 0.35f, 0.35f, 0.35f },
+            Color4{ 0.20f, 0.95f, 1.0f, 1.0f });
+        m_world.AddComponent<RigidbodyComponent>(m_sphereEntity, RigidbodyComponent{ {}, {}, 1.0f, true, false, 0.15f });
+        m_world.AddComponent<ColliderComponent>(m_sphereEntity, ColliderComponent{ ColliderType::Sphere, Vector3{ 0.5f, 0.5f, 0.5f }, 0.5f });
+
+        m_boxEntity = CreatePrimitiveEntity(
+            "Physics box",
+            PrimitiveType::Box,
+            TransformComponent{ 0.45f, 0.75f, 0.18f, 0.38f, 0.38f, 0.38f },
+            Color4{ 1.0f, 0.55f, 0.18f, 1.0f });
+        m_world.AddComponent<RigidbodyComponent>(m_boxEntity, RigidbodyComponent{ {}, {}, 1.5f, true, false, 0.2f });
+        m_world.AddComponent<ColliderComponent>(m_boxEntity, ColliderComponent{ ColliderType::Box, Vector3{ 0.5f, 0.5f, 0.5f } });
+        m_world.AddComponent<PlayerControllerComponent>(m_boxEntity, PlayerControllerComponent{});
+        m_controlledEntity = m_boxEntity;
+
         auto& parentHierarchy = m_world.AddComponent<HierarchyComponent>(m_controlledEntity);
         auto& childHierarchy = m_world.AddComponent<HierarchyComponent>(m_controlledChildEntity);
         childHierarchy.parent = m_controlledEntity;
@@ -199,6 +250,10 @@ namespace UwU_Engine
         m_spinnerEntity = FindEntityByTag("Auto spinner");
         m_modelEntity = FindEntityByTag("Shiba model");
         m_cameraEntity = FindEntityByTag("Main camera");
+        m_platformEntity = FindEntityByTag("Physics platform");
+        m_sphereEntity = FindEntityByTag("Physics sphere");
+        m_boxEntity = FindEntityByTag("Physics box");
+        m_controlledEntity = m_modelEntity != kInvalidEntity ? m_modelEntity : m_boxEntity;
     }
 
     EntityId GameplayState::FindEntityByTag(const std::string& name)
@@ -232,24 +287,45 @@ namespace UwU_Engine
         return entity;
     }
 
+    EntityId GameplayState::CreatePrimitiveEntity(const std::string& name,
+        PrimitiveType primitive, const TransformComponent& transform, const Color4& color)
+    {
+        EntityId entity = m_world.CreateEntity();
+        m_world.AddComponent<TagComponent>(entity, TagComponent{ name });
+        m_world.AddComponent<TransformComponent>(entity, transform);
+
+        MaterialDesc material;
+        material.baseColor = color;
+        material.shaderPath = m_shaderPath;
+
+        m_world.AddComponent<MeshRendererComponent>(
+            entity,
+            MeshRendererComponent{ MeshFactory::CreatePrimitive(primitive, color), std::move(material) });
+
+        UWU_ENGINE_INFO("[Gameplay] Entity {} created ({})", entity, name);
+        return entity;
+    }
+
     EntityId GameplayState::CreateCameraEntity()
     {
         EntityId entity = m_world.CreateEntity();
         m_world.AddComponent<TagComponent>(entity, TagComponent{ "Main camera" });
         m_world.AddComponent<TransformComponent>(
             entity,
-            TransformComponent{ 0.0f, 0.0f, -3.0f, 1.0f, 1.0f, 1.0f });
+            TransformComponent{ 0.0f, 0.15f, -3.8f, 1.0f, 1.0f, 1.0f });
 
         CameraComponent camera;
         camera.primary = true;
+        camera.orthographic = true;
         camera.zoom = 1.0f;
-        camera.viewHalfWidth = 1.8f;
-        camera.viewHalfHeight = 1.0f;
+        camera.viewHalfWidth = 2.2f;
+        camera.viewHalfHeight = 1.25f;
         camera.fovYRadians = 1.04719755f;
-        camera.nearPlane = 0.01f;
-        camera.farPlane = 100.0f;
-        camera.moveSpeed = 0.8f;
+        camera.nearPlane = 0.001f;
+        camera.farPlane = 1000.0f;
+        camera.moveSpeed = 1.8f;
         camera.zoomSpeed = 1.0f;
+        camera.rotateSpeed = 0.010f;
         m_world.AddComponent<CameraComponent>(entity, camera);
 
         UWU_ENGINE_INFO("[Gameplay] Entity {} created (Main camera)", entity);
@@ -269,42 +345,72 @@ namespace UwU_Engine
         if (auto* child = m_world.GetComponent<TransformComponent>(m_controlledChildEntity))
             child->rotationZ -= 1.7f * dt;
 
-        if (auto* model = m_world.GetComponent<TransformComponent>(m_modelEntity))
-            model->rotationY += 0.8f * dt;
+        if (auto* box = m_world.GetComponent<TransformComponent>(m_boxEntity))
+            box->rotationY += 0.35f * dt;
+    }
 
-        if (!ctx.input)
+    void GameplayState::ApplyControlledPhysicsInput(const StateContext& ctx, float /*fixedDt*/)
+    {
+        if (!ctx.input || m_controlledEntity == kInvalidEntity)
             return;
 
-        auto* controlled = m_world.GetComponent<TransformComponent>(m_controlledEntity);
-        if (!controlled)
+        auto* transform = m_world.GetComponent<TransformComponent>(m_controlledEntity);
+        auto* rigidbody = m_world.GetComponent<RigidbodyComponent>(m_controlledEntity);
+        auto* controller = m_world.GetComponent<PlayerControllerComponent>(m_controlledEntity);
+        if (!transform || !rigidbody || !controller || rigidbody->isStatic)
             return;
 
-        auto& input = *ctx.input;
+        Vector3 move;
+        if (ctx.input->IsActionDown("PlayerMoveLeft"))     move.x -= 1.0f;
+        if (ctx.input->IsActionDown("PlayerMoveRight"))    move.x += 1.0f;
+        if (ctx.input->IsActionDown("PlayerMoveForward"))  move.z += 1.0f;
+        if (ctx.input->IsActionDown("PlayerMoveBackward")) move.z -= 1.0f;
 
-        if (input.IsKeyDown(VK_LEFT))  controlled->x -= m_moveSpeed * dt;
-        if (input.IsKeyDown(VK_RIGHT)) controlled->x += m_moveSpeed * dt;
-        if (input.IsKeyDown(VK_UP))    controlled->y += m_moveSpeed * dt;
-        if (input.IsKeyDown(VK_DOWN))  controlled->y -= m_moveSpeed * dt;
-
-        controlled->x = std::clamp(controlled->x, -1.8f, 1.8f);
-        controlled->y = std::clamp(controlled->y, -1.8f, 1.8f);
-
-        const float dx = input.GetMouseDeltaX();
-        const float dy = input.GetMouseDeltaY();
-
-        if (input.IsMouseDown(MouseButton::Right))
-            controlled->rotationZ -= dx * m_rotateSpeed * 0.005f;
-
-        if (input.IsMouseDown(MouseButton::Left))
+        if (LengthSquared(move) > 0.0001f)
         {
-            float driver = (std::abs(dy) >= std::abs(dx)) ? -dy : dx;
-            float scale = std::clamp(
-                controlled->scaleX + driver * m_scaleSpeed * 0.005f,
-                0.1f, 5.0f);
-
-            controlled->scaleX = scale;
-            controlled->scaleY = scale;
-            controlled->scaleZ = scale;
+            move = Normalize(move);
+            rigidbody->velocity.x = move.x * controller->moveSpeed;
+            rigidbody->velocity.z = move.z * controller->moveSpeed;
+            transform->rotationY = std::atan2(move.x, move.z);
         }
+        else
+        {
+            rigidbody->velocity.x = 0.0f;
+            rigidbody->velocity.z = 0.0f;
+        }
+
+        if (ctx.input->IsActionPressed("PlayerJump") && m_physicsSystem.IsGrounded(m_controlledEntity))
+            rigidbody->velocity.y = controller->jumpSpeed;
+    }
+
+    void GameplayState::BindInputActions(InputManager* input) const
+    {
+        if (!input)
+            return;
+
+        input->BindAction("PlayerMoveLeft", { VK_LEFT });
+        input->BindAction("PlayerMoveRight", { VK_RIGHT });
+        input->BindAction("PlayerMoveForward", { VK_UP });
+        input->BindAction("PlayerMoveBackward", { VK_DOWN });
+        input->BindAction("PlayerJump", { VK_SPACE });
+    }
+
+    void GameplayState::SetupPhysicsEventLogging()
+    {
+        m_physicsSystem.ClearEventListeners();
+        m_physicsSystem.AddEventListener(
+            [this](const PhysicsEvent& event)
+            {
+                if (event.kind != PhysicsEventKind::CollisionEnter
+                    && event.kind != PhysicsEventKind::TriggerEnter)
+                    return;
+
+                const auto* tagA = m_world.GetComponent<TagComponent>(event.contact.a);
+                const auto* tagB = m_world.GetComponent<TagComponent>(event.contact.b);
+                UWU_ENGINE_INFO("[Physics] {}: {} <-> {}",
+                    event.kind == PhysicsEventKind::TriggerEnter ? "Trigger" : "Collision",
+                    tagA ? tagA->name : std::to_string(event.contact.a),
+                    tagB ? tagB->name : std::to_string(event.contact.b));
+            });
     }
 }

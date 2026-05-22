@@ -50,6 +50,8 @@ namespace UwU_Engine
         DX12Shader                            m_ps;
         DX12PipelineState                     m_pso;
         std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputLayout;
+        D3D12_PRIMITIVE_TOPOLOGY              m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        D3D12_PRIMITIVE_TOPOLOGY_TYPE         m_primitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
         ObjectTransform m_transform;
         bool            m_ready = false;

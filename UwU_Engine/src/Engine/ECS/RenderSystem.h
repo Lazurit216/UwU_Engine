@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core.h"
+#include "Engine/ECS/CameraView.h"
 #include "Engine/ECS/Components.h"
 #include "Engine/ECS/RenderResourceBinder.h"
 #include "Engine/ECS/SpatialGrid.h"
@@ -11,21 +12,6 @@ namespace UwU_Engine
 {
     class UWU_API RenderSystem final : public ISystem
     {
-    private:
-        struct CameraView
-        {
-            bool enabled = false;
-            TransformComponent transform;
-            CameraComponent camera;
-            SpatialBounds2D visibleBounds;
-            std::array<float, 16> viewProjection = {
-                1.0f, 0.0f, 0.0f, 0.0f,
-                0.0f, 1.0f, 0.0f, 0.0f,
-                0.0f, 0.0f, 1.0f, 0.0f,
-                0.0f, 0.0f, 0.0f, 1.0f
-            };
-        };
-
     public:
         void Update(World& /*world*/, float /*dt*/) override {}
 
@@ -34,7 +20,7 @@ namespace UwU_Engine
             if (!renderer || !renderer->IsReady())
                 return;
 
-            const CameraView camera = FindActiveCamera(world, renderer);
+            const CameraViewData camera = FindActiveCamera(world, renderer);
             m_spatialGrid.Clear();
 
             world.ForEach<TransformComponent, MeshRendererComponent>(
@@ -45,16 +31,22 @@ namespace UwU_Engine
                 });
 
             std::unordered_set<EntityId> visibleEntities;
-            if (camera.enabled)
+            const bool useSpatialCulling = camera.enabled
+                && camera.camera.orthographic
+                && std::abs(camera.transform.rotationX) < 0.0001f
+                && std::abs(camera.transform.rotationY) < 0.0001f
+                && std::abs(camera.transform.rotationZ) < 0.0001f;
+
+            if (useSpatialCulling)
             {
                 const auto visible = m_spatialGrid.Query(camera.visibleBounds);
                 visibleEntities.insert(visible.begin(), visible.end());
             }
 
             world.ForEach<TransformComponent, MeshRendererComponent>(
-                [this, &world, renderer, &camera, &visibleEntities](EntityId entity, TransformComponent& transform, MeshRendererComponent& mesh)
+                [this, &world, renderer, &camera, useSpatialCulling, &visibleEntities](EntityId entity, TransformComponent& transform, MeshRendererComponent& mesh)
                 {
-                    if (camera.enabled && visibleEntities.find(entity) == visibleEntities.end())
+                    if (useSpatialCulling && visibleEntities.find(entity) == visibleEntities.end())
                         return;
 
                     if (!EnsureDrawable(world, entity, mesh, renderer))
@@ -91,7 +83,13 @@ namespace UwU_Engine
             if (!m_resourceBinder.Update(entity, mesh))
                 return false;
 
-            if (mesh.mesh.primitive != PrimitiveType::Triangle
+            if (mesh.mesh.primitive != PrimitiveType::Line
+                && mesh.mesh.primitive != PrimitiveType::Triangle
+                && mesh.mesh.primitive != PrimitiveType::Quad
+                && mesh.mesh.primitive != PrimitiveType::Cube
+                && mesh.mesh.primitive != PrimitiveType::Box
+                && mesh.mesh.primitive != PrimitiveType::Sphere
+                && mesh.mesh.primitive != PrimitiveType::Plane
                 && mesh.mesh.primitive != PrimitiveType::CustomMesh)
             {
                 if (!mesh.unsupportedLogged)
@@ -195,56 +193,9 @@ namespace UwU_Engine
             return worldTransform;
         }
 
-        CameraView FindActiveCamera(World& world, IRenderer* renderer) const
+        CameraViewData FindActiveCamera(World& world, IRenderer* renderer) const
         {
-            CameraView view;
-            const float width = renderer ? static_cast<float>(renderer->GetWidth()) : 1.0f;
-            const float height = renderer ? static_cast<float>(renderer->GetHeight()) : 1.0f;
-            const float aspect = height > 0.0f ? width / height : 1.0f;
-
-            world.ForEach<TransformComponent, CameraComponent>(
-                [&view, aspect](EntityId /*entity*/, TransformComponent& transform, CameraComponent& camera)
-                {
-                    if (view.enabled || !camera.primary)
-                        return;
-
-                    view.enabled = true;
-                    view.transform = transform;
-                    view.camera = camera;
-
-                    const float zoom = (std::max)(camera.zoom, 0.01f);
-                    const float halfWidth = (std::max)(camera.viewHalfWidth, camera.viewHalfHeight * aspect) / zoom;
-                    const float halfHeight = camera.viewHalfHeight / zoom;
-                    view.visibleBounds = SpatialBounds2D{
-                        transform.x - halfWidth,
-                        transform.y - halfHeight,
-                        transform.x + halfWidth,
-                        transform.y + halfHeight
-                    };
-
-                    const float nearPlane = (std::max)(camera.nearPlane, 0.001f);
-                    const float farPlane = (std::max)(camera.farPlane, nearPlane + 1.0f);
-
-                    const DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixTranslation(
-                        -transform.x,
-                        -transform.y,
-                        -transform.z);
-                    const DirectX::XMMATRIX projectionMatrix = DirectX::XMMatrixOrthographicLH(
-                        halfWidth * 2.0f,
-                        halfHeight * 2.0f,
-                        nearPlane,
-                        farPlane);
-
-                    DirectX::XMFLOAT4X4 matrixData;
-                    DirectX::XMStoreFloat4x4(&matrixData, viewMatrix * projectionMatrix);
-                    for (int row = 0; row < 4; ++row)
-                    {
-                        for (int column = 0; column < 4; ++column)
-                            view.viewProjection[row * 4 + column] = matrixData.m[row][column];
-                    }
-                });
-
-            return view;
+            return BuildCameraView(world, renderer);
         }
 
         SpatialBounds2D ComputeBounds(const MeshData& mesh, const ObjectTransform& transform) const

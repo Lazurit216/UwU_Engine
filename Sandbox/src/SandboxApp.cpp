@@ -6,6 +6,7 @@
 #include "Engine/GameState/States/MainMenuState.h"
 #include "Engine/GameState/States/GameplayState.h"
 #include "Engine/GameState/States/GamePauseState.h"
+#include "Engine/Renderer/MeshGeometry.h"
 
 using namespace UwU_Engine;
 

@@ -12,6 +12,7 @@ namespace UwU_Engine
             ID3D12RootSignature* rootSignature,
             const DX12Shader& vs,
             const DX12Shader& ps,
-            const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputLayout);
+            const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputLayout,
+            D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     };
 }

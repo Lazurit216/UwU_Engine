@@ -2,6 +2,7 @@
 
 #include "Engine/Core.h"
 #include "Engine/ECS/Components.h"
+#include "Engine/Renderer/MeshGeometry.h"
 #include "Engine/Resources/ResourceManager.h"
 
 namespace UwU_Engine

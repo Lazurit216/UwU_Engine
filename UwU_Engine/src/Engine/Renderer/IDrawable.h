@@ -44,6 +44,9 @@ namespace UwU_Engine
         Triangle,
         Quad,
         Cube,
+        Box,
+        Sphere,
+        Plane,
         CustomMesh
     };
 
@@ -83,27 +86,6 @@ namespace UwU_Engine
     {
         MeshData mesh;
         MaterialDesc material;
-    };
-
-    class MeshFactory
-    {
-    public:
-        static MeshData CreateTriangle(float size = 1.0f, Color4 color = {})
-        {
-            const float halfSide = size * 0.5f;
-            const float bottomY = -size * 0.2886751346f; // -sqrt(3) / 6
-            const float topY = size * 0.5773502692f;     //  sqrt(3) / 3
-
-            MeshData mesh;
-            mesh.primitive = PrimitiveType::Triangle;
-            mesh.vertices = {
-                {{ 0.0f,     topY,   0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.5f, 0.0f }, { color.r, color.g, color.b }},
-                {{ halfSide, bottomY, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f }, { color.r, color.g, color.b }},
-                {{-halfSide, bottomY, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f }, { color.r, color.g, color.b }},
-            };
-            mesh.indices = { 0, 1, 2 };
-            return mesh;
-        }
     };
 
     class UWU_API IDrawable

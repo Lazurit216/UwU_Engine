@@ -29,6 +29,16 @@ namespace UwU_Engine
         }
         m_renderer = renderer;
         ID3D12Device* device = renderer->GetDevice();
+        if (desc.mesh.primitive == PrimitiveType::Line)
+        {
+            m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+            m_primitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+        }
+        else
+        {
+            m_primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+            m_primitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        }
 
         if (!CreateRootSignature(device)) { UWU_ENGINE_ERROR("[DX12Triangle] Root signature failed");  return false; }
         if (!BuildShadersAndInputLayout(desc)) { UWU_ENGINE_ERROR("[DX12Triangle] Shaders/layout failed");  return false; }
@@ -96,7 +106,7 @@ namespace UwU_Engine
         cmd->SetDescriptorHeaps(1, descriptorHeaps);
         cmd->SetGraphicsRootConstantBufferView(0, m_cbGPUAddress);
         cmd->SetGraphicsRootDescriptorTable(1, m_srvHeap->GetGPUDescriptorHandleForHeapStart());
-        cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        cmd->IASetPrimitiveTopology(m_primitiveTopology);
         const auto& vertexBufferView = m_geometry.GetVertexBufferView();
         const auto& indexBufferView = m_geometry.GetIndexBufferView();
         cmd->IASetVertexBuffers(0, 1, &vertexBufferView);
@@ -302,6 +312,6 @@ namespace UwU_Engine
 
     bool DX12Triangle::BuildPSO(ID3D12Device* device)
     {
-        return m_pso.Build(device, m_rootSignature.Get(), m_vs, m_ps, m_inputLayout);
+        return m_pso.Build(device, m_rootSignature.Get(), m_vs, m_ps, m_inputLayout, m_primitiveTopologyType);
     }
 }

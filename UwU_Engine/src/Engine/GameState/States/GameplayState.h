@@ -9,6 +9,8 @@
 #include "Engine/ECS/RenderSystem.h"
 #include "Engine/ECS/SceneSerializer.h"
 #include "Engine/ECS/World.h"
+#include "Engine/Physics/PhysicsDebugRenderSystem.h"
+#include "Engine/Physics/PhysicsSystem.h"
 
 namespace UwU_Engine
 {
@@ -27,6 +29,7 @@ namespace UwU_Engine
         void OnExit(const StateContext& ctx)   override;
 
         bool OnEvent(const StateContext& ctx, Event& e)  override;
+        void FixedUpdate(const StateContext& ctx, float fixedDt) override;
         StateTransition Update(const StateContext& ctx, float dt) override;
         void            Render(const StateContext& ctx)           override;
 
@@ -39,14 +42,21 @@ namespace UwU_Engine
         EntityId FindEntityByTag(const std::string& name);
         EntityId CreateTriangleEntity(const std::string& name,
             const TransformComponent& transform, const Color4& color);
+        EntityId CreatePrimitiveEntity(const std::string& name,
+            PrimitiveType primitive, const TransformComponent& transform, const Color4& color);
         EntityId CreateCameraEntity();
         void UpdateDemoScene(const StateContext& ctx, float dt);
+        void ApplyControlledPhysicsInput(const StateContext& ctx, float fixedDt);
+        void BindInputActions(InputManager* input) const;
+        void SetupPhysicsEventLogging();
     private:
         StateFactory                   m_pauseFactory;
         std::shared_ptr<IGameState>    m_pendingPush;
 
         World        m_world;
         RenderSystem m_renderSystem;
+        PhysicsSystem m_physicsSystem;
+        PhysicsDebugRenderSystem m_physicsDebugRenderSystem;
         CameraControlSystem m_cameraSystem;
         SceneSerializer m_sceneSerializer;
         std::wstring m_shaderPath;
@@ -58,6 +68,9 @@ namespace UwU_Engine
         EntityId m_spinnerEntity = kInvalidEntity;
         EntityId m_modelEntity = kInvalidEntity;
         EntityId m_cameraEntity = kInvalidEntity;
+        EntityId m_platformEntity = kInvalidEntity;
+        EntityId m_sphereEntity = kInvalidEntity;
+        EntityId m_boxEntity = kInvalidEntity;
 
         // Input speeds (could come from config)
         float m_moveSpeed = 0.6f;

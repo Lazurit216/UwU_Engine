@@ -67,6 +67,7 @@ namespace UwU_Engine
         virtual void OnResume(const StateContext& ctx) {}
 
         virtual bool            OnEvent(const StateContext& ctx, Event& e) { return false; }
+        virtual void            FixedUpdate(const StateContext& ctx, float fixedDt) {}
         virtual StateTransition Update(const StateContext& ctx, float dt) = 0;
         virtual void            Render(const StateContext& ctx) = 0;
         virtual std::string     Name()  const = 0;

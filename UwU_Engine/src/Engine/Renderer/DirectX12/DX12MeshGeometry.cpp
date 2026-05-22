@@ -38,9 +38,11 @@ namespace UwU_Engine
         if (!device)
             return false;
 
-        if (meshData.vertices.size() < 3 || meshData.indices.size() < 3)
+        const size_t minVertexCount = meshData.primitive == PrimitiveType::Line ? 2u : 3u;
+        const size_t minIndexCount = meshData.primitive == PrimitiveType::Line ? 2u : 3u;
+        if (meshData.vertices.size() < minVertexCount || meshData.indices.size() < minIndexCount)
         {
-            UWU_ENGINE_ERROR("[DX12MeshGeometry] Drawable requires at least 3 vertices and 3 indices");
+            UWU_ENGINE_ERROR("[DX12MeshGeometry] Drawable has not enough vertices/indices");
             return false;
         }
 

@@ -60,17 +60,19 @@
     {
       "id": 5,
       "tag": { "name": "Main camera" },
-      "transform": { "x": 0.0, "y": 0.0, "z": -3.0, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0 },
+      "transform": { "x": 0.0, "y": 0.15, "z": -3.8, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0 },
       "camera": {
         "primary": true,
+        "orthographic": true,
         "zoom": 1.0,
-        "viewHalfWidth": 1.8,
-        "viewHalfHeight": 1.0,
+        "viewHalfWidth": 2.2,
+        "viewHalfHeight": 1.25,
         "fovYRadians": 1.04719755,
-        "nearPlane": 0.01,
-        "farPlane": 100.0,
-        "moveSpeed": 0.8,
-        "zoomSpeed": 1.0
+        "nearPlane": 0.001,
+        "farPlane": 1000.0,
+        "moveSpeed": 1.8,
+        "zoomSpeed": 1.0,
+        "rotateSpeed": 0.01
       }
     },
     {
@@ -84,6 +86,27 @@
         "shaderPath": "",
         "texturePath": "",
         "color": [ 1.0, 1.0, 1.0, 1.0 ]
+      },
+      "rigidbody": {
+        "velocity": [ 0.0, 0.0, 0.0 ],
+        "acceleration": [ 0.0, 0.0, 0.0 ],
+        "mass": 1.0,
+        "useGravity": true,
+        "isStatic": false,
+        "linearDamping": 0.05
+      },
+      "collider": {
+        "type": "Box",
+        "halfExtents": [ 0.24, 0.36, 0.24 ],
+        "radius": 0.5,
+        "offset": [ 0.0, 0.0, 0.0 ],
+        "isTrigger": false,
+        "bounciness": 0.0,
+        "friction": 0.35
+      },
+      "playerController": {
+        "moveSpeed": 1.35,
+        "jumpSpeed": 3.0
       }
     },
     {
@@ -97,6 +120,96 @@
         "shaderPath": "",
         "texturePath": "",
         "color": [ 1.0, 1.0, 1.0, 1.0 ]
+      }
+    },
+    {
+      "id": 8,
+      "tag": { "name": "Physics platform" },
+      "transform": { "x": 0.0, "y": -1.05, "z": 0.0, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 4.0, "scaleY": 0.16, "scaleZ": 2.4 },
+      "meshRenderer": {
+        "primitive": "Box",
+        "meshPath": "",
+        "materialPath": "",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 0.35, 0.36, 0.40, 1.0 ]
+      },
+      "rigidbody": {
+        "velocity": [ 0.0, 0.0, 0.0 ],
+        "acceleration": [ 0.0, 0.0, 0.0 ],
+        "mass": 0.0,
+        "useGravity": false,
+        "isStatic": true,
+        "linearDamping": 0.0
+      },
+      "collider": {
+        "type": "Box",
+        "halfExtents": [ 0.5, 0.5, 0.5 ],
+        "radius": 0.5,
+        "offset": [ 0.0, 0.0, 0.0 ],
+        "isTrigger": false,
+        "bounciness": 0.0,
+        "friction": 0.6
+      }
+    },
+    {
+      "id": 9,
+      "tag": { "name": "Physics sphere" },
+      "transform": { "x": -0.45, "y": 0.65, "z": 0.0, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 0.35, "scaleY": 0.35, "scaleZ": 0.35 },
+      "meshRenderer": {
+        "primitive": "Sphere",
+        "meshPath": "",
+        "materialPath": "",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 0.20, 0.95, 1.0, 1.0 ]
+      },
+      "rigidbody": {
+        "velocity": [ 0.0, 0.0, 0.0 ],
+        "acceleration": [ 0.0, 0.0, 0.0 ],
+        "mass": 1.0,
+        "useGravity": true,
+        "isStatic": false,
+        "linearDamping": 0.15
+      },
+      "collider": {
+        "type": "Sphere",
+        "halfExtents": [ 0.5, 0.5, 0.5 ],
+        "radius": 0.5,
+        "offset": [ 0.0, 0.0, 0.0 ],
+        "isTrigger": false,
+        "bounciness": 0.1,
+        "friction": 0.25
+      }
+    },
+    {
+      "id": 10,
+      "tag": { "name": "Physics box" },
+      "transform": { "x": 0.45, "y": 0.75, "z": 0.18, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 0.38, "scaleY": 0.38, "scaleZ": 0.38 },
+      "meshRenderer": {
+        "primitive": "Box",
+        "meshPath": "",
+        "materialPath": "",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 1.0, 0.55, 0.18, 1.0 ]
+      },
+      "rigidbody": {
+        "velocity": [ 0.0, 0.0, 0.0 ],
+        "acceleration": [ 0.0, 0.0, 0.0 ],
+        "mass": 1.5,
+        "useGravity": true,
+        "isStatic": false,
+        "linearDamping": 0.2
+      },
+      "collider": {
+        "type": "Box",
+        "halfExtents": [ 0.5, 0.5, 0.5 ],
+        "radius": 0.5,
+        "offset": [ 0.0, 0.0, 0.0 ],
+        "isTrigger": false,
+        "bounciness": 0.05,
+        "friction": 0.35
       }
     }
   ]

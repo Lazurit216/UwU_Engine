@@ -2,6 +2,7 @@
 #include "SceneSerializer.h"
 
 #include "Engine/ECS/Components.h"
+#include "Engine/Renderer/MeshGeometry.h"
 
 #include <nlohmann/json.hpp>
 
@@ -37,6 +38,9 @@ namespace UwU_Engine
             case PrimitiveType::Triangle:   return "Triangle";
             case PrimitiveType::Quad:       return "Quad";
             case PrimitiveType::Cube:       return "Cube";
+            case PrimitiveType::Box:        return "Box";
+            case PrimitiveType::Sphere:     return "Sphere";
+            case PrimitiveType::Plane:      return "Plane";
             case PrimitiveType::CustomMesh: return "CustomMesh";
             default:                        return "Triangle";
             }
@@ -47,8 +51,27 @@ namespace UwU_Engine
             if (value == "Line") return PrimitiveType::Line;
             if (value == "Quad") return PrimitiveType::Quad;
             if (value == "Cube") return PrimitiveType::Cube;
+            if (value == "Box") return PrimitiveType::Box;
+            if (value == "Sphere") return PrimitiveType::Sphere;
+            if (value == "Plane") return PrimitiveType::Plane;
             if (value == "CustomMesh") return PrimitiveType::CustomMesh;
             return PrimitiveType::Triangle;
+        }
+
+        const char* ColliderTypeToString(ColliderType type)
+        {
+            switch (type)
+            {
+            case ColliderType::Sphere: return "Sphere";
+            case ColliderType::Box:
+            default:                   return "Box";
+            }
+        }
+
+        ColliderType ColliderTypeFromString(const std::string& value)
+        {
+            if (value == "Sphere") return ColliderType::Sphere;
+            return ColliderType::Box;
         }
 
         const Json* FindMember(const Json& object, const char* key)
@@ -102,6 +125,23 @@ namespace UwU_Engine
                 ReadArrayFloat(value, 1, fallback.g),
                 ReadArrayFloat(value, 2, fallback.b),
                 ReadArrayFloat(value, 3, fallback.a)
+            };
+        }
+
+        Json WriteVector3(const Vector3& value)
+        {
+            return Json::array({ value.x, value.y, value.z });
+        }
+
+        Vector3 ReadVector3(const Json& value, Vector3 fallback = {})
+        {
+            if (!value.is_array() || value.size() < 3)
+                return fallback;
+
+            return Vector3{
+                ReadArrayFloat(value, 0, fallback.x),
+                ReadArrayFloat(value, 1, fallback.y),
+                ReadArrayFloat(value, 2, fallback.z)
             };
         }
 
@@ -243,6 +283,7 @@ namespace UwU_Engine
             {
                 node["camera"] = Json{
                     { "primary", camera->primary },
+                    { "orthographic", camera->orthographic },
                     { "zoom", camera->zoom },
                     { "viewHalfWidth", camera->viewHalfWidth },
                     { "viewHalfHeight", camera->viewHalfHeight },
@@ -250,7 +291,41 @@ namespace UwU_Engine
                     { "nearPlane", camera->nearPlane },
                     { "farPlane", camera->farPlane },
                     { "moveSpeed", camera->moveSpeed },
-                    { "zoomSpeed", camera->zoomSpeed }
+                    { "zoomSpeed", camera->zoomSpeed },
+                    { "rotateSpeed", camera->rotateSpeed }
+                };
+            }
+
+            if (const auto* rigidbody = world.GetComponent<RigidbodyComponent>(entity))
+            {
+                node["rigidbody"] = Json{
+                    { "velocity", WriteVector3(rigidbody->velocity) },
+                    { "acceleration", WriteVector3(rigidbody->acceleration) },
+                    { "mass", rigidbody->mass },
+                    { "useGravity", rigidbody->useGravity },
+                    { "isStatic", rigidbody->isStatic },
+                    { "linearDamping", rigidbody->linearDamping }
+                };
+            }
+
+            if (const auto* collider = world.GetComponent<ColliderComponent>(entity))
+            {
+                node["collider"] = Json{
+                    { "type", ColliderTypeToString(collider->type) },
+                    { "halfExtents", WriteVector3(collider->halfExtents) },
+                    { "radius", collider->radius },
+                    { "offset", WriteVector3(collider->offset) },
+                    { "isTrigger", collider->isTrigger },
+                    { "bounciness", collider->bounciness },
+                    { "friction", collider->friction }
+                };
+            }
+
+            if (const auto* controller = world.GetComponent<PlayerControllerComponent>(entity))
+            {
+                node["playerController"] = Json{
+                    { "moveSpeed", controller->moveSpeed },
+                    { "jumpSpeed", controller->jumpSpeed }
                 };
             }
 
@@ -328,11 +403,7 @@ namespace UwU_Engine
                 const PrimitiveType primitive = PrimitiveFromString(
                     ReadString(*meshRenderer, "primitive", "Triangle"));
 
-                MeshData mesh;
-                if (primitive == PrimitiveType::Triangle)
-                    mesh = MeshFactory::CreateTriangle(1.0f, color);
-                else
-                    mesh.primitive = primitive;
+                MeshData mesh = MeshFactory::CreatePrimitive(primitive, color);
 
                 const std::string meshPath = ResolveSceneAssetPath(
                     filePath,
@@ -365,15 +436,57 @@ namespace UwU_Engine
             {
                 CameraComponent component;
                 component.primary = ReadBool(*camera, "primary", true);
+                component.orthographic = ReadBool(*camera, "orthographic", true);
                 component.zoom = std::clamp(ReadFloat(*camera, "zoom", 1.0f), 0.25f, 4.0f);
                 component.viewHalfWidth = ReadFloat(*camera, "viewHalfWidth", 1.8f);
                 component.viewHalfHeight = ReadFloat(*camera, "viewHalfHeight", 1.0f);
                 component.fovYRadians = ReadFloat(*camera, "fovYRadians", 1.04719755f);
-                component.nearPlane = ReadFloat(*camera, "nearPlane", 0.01f);
-                component.farPlane = ReadFloat(*camera, "farPlane", 100.0f);
+                component.nearPlane = ReadFloat(*camera, "nearPlane", 0.001f);
+                component.farPlane = ReadFloat(*camera, "farPlane", 1000.0f);
                 component.moveSpeed = ReadFloat(*camera, "moveSpeed", 0.8f);
                 component.zoomSpeed = ReadFloat(*camera, "zoomSpeed", 1.0f);
+                component.rotateSpeed = ReadFloat(*camera, "rotateSpeed", 0.012f);
                 world.AddComponent<CameraComponent>(entity, component);
+            }
+
+            const Json* rigidbody = FindMember(node, "rigidbody");
+            if (rigidbody && rigidbody->is_object())
+            {
+                RigidbodyComponent component;
+                if (const Json* velocity = FindMember(*rigidbody, "velocity"))
+                    component.velocity = ReadVector3(*velocity);
+                if (const Json* acceleration = FindMember(*rigidbody, "acceleration"))
+                    component.acceleration = ReadVector3(*acceleration);
+                component.mass = ReadFloat(*rigidbody, "mass", 1.0f);
+                component.useGravity = ReadBool(*rigidbody, "useGravity", true);
+                component.isStatic = ReadBool(*rigidbody, "isStatic", false);
+                component.linearDamping = ReadFloat(*rigidbody, "linearDamping", 0.0f);
+                world.AddComponent<RigidbodyComponent>(entity, component);
+            }
+
+            const Json* collider = FindMember(node, "collider");
+            if (collider && collider->is_object())
+            {
+                ColliderComponent component;
+                component.type = ColliderTypeFromString(ReadString(*collider, "type", "Box"));
+                if (const Json* halfExtents = FindMember(*collider, "halfExtents"))
+                    component.halfExtents = ReadVector3(*halfExtents, Vector3{ 0.5f, 0.5f, 0.5f });
+                component.radius = ReadFloat(*collider, "radius", 0.5f);
+                if (const Json* offset = FindMember(*collider, "offset"))
+                    component.offset = ReadVector3(*offset);
+                component.isTrigger = ReadBool(*collider, "isTrigger", false);
+                component.bounciness = ReadFloat(*collider, "bounciness", 0.0f);
+                component.friction = ReadFloat(*collider, "friction", 0.2f);
+                world.AddComponent<ColliderComponent>(entity, component);
+            }
+
+            const Json* playerController = FindMember(node, "playerController");
+            if (playerController && playerController->is_object())
+            {
+                PlayerControllerComponent component;
+                component.moveSpeed = ReadFloat(*playerController, "moveSpeed", 1.4f);
+                component.jumpSpeed = ReadFloat(*playerController, "jumpSpeed", 3.0f);
+                world.AddComponent<PlayerControllerComponent>(entity, component);
             }
         }
 
