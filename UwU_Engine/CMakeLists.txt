@@ -1,11 +1,11 @@
 project(UwU_Engine)
 
-file(GLOB_RECURSE ENGINE_SOURCES     
+file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
-file(GLOB_RECURSE SHADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hlsl")
+file(GLOB_RECURSE SHADER_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hlsl")
 foreach(SHADER ${SHADER_FILES})
     set_source_files_properties(${SHADER} PROPERTIES
         VS_TOOL_OVERRIDE "None"   # tells MSBuild: display only, no compile step
@@ -13,19 +13,7 @@ foreach(SHADER ${SHADER_FILES})
 endforeach()
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Shaders" FILES ${SHADER_FILES})
 
-file(GLOB_RECURSE JSON_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../Sandbox/*.json")
-foreach(JSON ${JSON_FILES})
-    set_source_files_properties(${JSON} PROPERTIES
-        VS_TOOL_OVERRIDE "None"
-    )
-endforeach()
-source_group("Config" FILES ${JSON_FILES})
-
-message(STATUS "ENGINE_SOURCES list  = ${ENGINE_SOURCES}")
-message(STATUS "SHADERS list  = ${SHADER_FILES}")
-message(STATUS "CONFIGS list  = ${JSON_FILES}")
-
-add_library(UwU_Engine SHARED ${ENGINE_SOURCES} ${SHADER_FILES} ${JSON_FILES})
+add_library(UwU_Engine SHARED ${ENGINE_SOURCES} ${SHADER_FILES})
 
 set_target_properties(UwU_Engine PROPERTIES
     FOLDER "UwU Engine" 
@@ -83,31 +71,32 @@ set(UWU_ASSIMP_RELEASE_DLL "${UWU_ASSIMP_ROOT}/bin/Release/assimp-vc143-mt.dll")
 set(UWU_ASSIMP_DEBUG_ENABLED FALSE)
 set(UWU_ASSIMP_RELEASE_ENABLED FALSE)
 
-set(UWU_ASSIMP_HEADERS_READY FALSE)
-if(EXISTS "${UWU_ASSIMP_INCLUDE_DIR}/assimp/Importer.hpp"
-    AND EXISTS "${UWU_ASSIMP_INCLUDE_DIR}/assimp/scene.h"
-    AND EXISTS "${UWU_ASSIMP_INCLUDE_DIR}/assimp/postprocess.h")
-    set(UWU_ASSIMP_HEADERS_READY TRUE)
+if(NOT EXISTS "${UWU_ASSIMP_INCLUDE_DIR}/assimp/Importer.hpp"
+    OR NOT EXISTS "${UWU_ASSIMP_INCLUDE_DIR}/assimp/scene.h"
+    OR NOT EXISTS "${UWU_ASSIMP_INCLUDE_DIR}/assimp/postprocess.h")
+    message(FATAL_ERROR "Assimp headers not found in ${UWU_ASSIMP_INCLUDE_DIR}")
 endif()
 
-if(UWU_ASSIMP_HEADERS_READY)
-    target_include_directories(UwU_Engine PRIVATE "${UWU_ASSIMP_INCLUDE_DIR}")
+target_include_directories(UwU_Engine PRIVATE "${UWU_ASSIMP_INCLUDE_DIR}")
 
-    if(EXISTS "${UWU_ASSIMP_DEBUG_LIB}")
-        target_link_libraries(UwU_Engine PRIVATE "$<$<CONFIG:Debug>:${UWU_ASSIMP_DEBUG_LIB}>")
-        target_compile_definitions(UwU_Engine PRIVATE "$<$<CONFIG:Debug>:UWU_HAS_ASSIMP=1>")
-        set(UWU_ASSIMP_DEBUG_ENABLED TRUE)
-        message(STATUS "Assimp Debug lib enabled from ${UWU_ASSIMP_DEBUG_LIB}")
-    endif()
-
-    if(EXISTS "${UWU_ASSIMP_RELEASE_LIB}")
-        target_link_libraries(UwU_Engine PRIVATE "$<$<NOT:$<CONFIG:Debug>>:${UWU_ASSIMP_RELEASE_LIB}>")
-        target_compile_definitions(UwU_Engine PRIVATE "$<$<NOT:$<CONFIG:Debug>>:UWU_HAS_ASSIMP=1>")
-        set(UWU_ASSIMP_RELEASE_ENABLED TRUE)
-        message(STATUS "Assimp Release lib enabled from ${UWU_ASSIMP_RELEASE_LIB}")
-    endif()
+if(EXISTS "${UWU_ASSIMP_DEBUG_LIB}")
+    target_link_libraries(UwU_Engine PRIVATE "$<$<CONFIG:Debug>:${UWU_ASSIMP_DEBUG_LIB}>")
+    set(UWU_ASSIMP_DEBUG_ENABLED TRUE)
+    message(STATUS "Assimp Debug lib enabled from ${UWU_ASSIMP_DEBUG_LIB}")
 else()
-    message(STATUS "Assimp headers are incomplete in ${UWU_ASSIMP_INCLUDE_DIR}; MeshLoader will use OBJ fallback")
+    message(STATUS "Assimp Debug lib not found at ${UWU_ASSIMP_DEBUG_LIB}")
+endif()
+
+if(EXISTS "${UWU_ASSIMP_RELEASE_LIB}")
+    target_link_libraries(UwU_Engine PRIVATE "$<$<NOT:$<CONFIG:Debug>>:${UWU_ASSIMP_RELEASE_LIB}>")
+    set(UWU_ASSIMP_RELEASE_ENABLED TRUE)
+    message(STATUS "Assimp Release lib enabled from ${UWU_ASSIMP_RELEASE_LIB}")
+else()
+    message(STATUS "Assimp Release lib not found at ${UWU_ASSIMP_RELEASE_LIB}")
+endif()
+
+if(NOT UWU_ASSIMP_DEBUG_ENABLED AND NOT UWU_ASSIMP_RELEASE_ENABLED)
+    message(FATAL_ERROR "Assimp libraries not found in ${UWU_ASSIMP_ROOT}/lib")
 endif()
 
 target_precompile_headers(UwU_Engine PUBLIC

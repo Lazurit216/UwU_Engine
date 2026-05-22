@@ -1,6 +1,6 @@
 cbuffer cbTransform : register(b0)
 {
-    row_major float4x4 gWorld;
+    row_major float4x4 gWorldViewProjection;
 }
 
 Texture2D gDiffuseTexture : register(t0);
@@ -23,7 +23,7 @@ struct VertexOut
 VertexOut VS(VertexIn vin)
 {
     VertexOut vout;
-    vout.PosH = mul(float4(vin.PosL, 1.0f), gWorld);
+    vout.PosH = mul(float4(vin.PosL, 1.0f), gWorldViewProjection);
     vout.Color = vin.Color;
     vout.TexCoord = vin.TexCoord;
     return vout;

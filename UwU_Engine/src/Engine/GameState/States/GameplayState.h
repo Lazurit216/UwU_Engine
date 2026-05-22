@@ -56,6 +56,7 @@ namespace UwU_Engine
         EntityId m_controlledEntity = kInvalidEntity;
         EntityId m_controlledChildEntity = kInvalidEntity;
         EntityId m_spinnerEntity = kInvalidEntity;
+        EntityId m_modelEntity = kInvalidEntity;
         EntityId m_cameraEntity = kInvalidEntity;
 
         // Input speeds (could come from config)

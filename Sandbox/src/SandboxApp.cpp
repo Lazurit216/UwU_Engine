@@ -1,7 +1,6 @@
 #include "uwupch.h"
 #include "UwU.h"
 #include "Engine/Config.h"
-#include "Engine/Input/InputManager.h"
 #include "Engine/Renderer/DirectX12/DX12Renderer.h"
 #include "Engine/GameState/States/LoadingState.h"
 #include "Engine/GameState/States/MainMenuState.h"
@@ -31,10 +30,6 @@ protected:
         const std::string configPath= configBase+ "engine_config.json";
         const std::string scenePath = configBase + "Assets\\Scenes\\scene_test.json";
         m_cfg.Load(configPath);
-
-        m_moveSpeed = m_cfg.GetFloat("input.moveSpeed", 0.6f);
-        m_scaleSpeed = m_cfg.GetFloat("input.scaleSpeed", 0.5f);
-        m_rotateSpeed = m_cfg.GetFloat("input.rotateSpeed", 1.8f);
 
         Window* win0 = m_windowManager.Create(
             { m_cfg.GetInt("windows.primary.width",  1280),
@@ -71,27 +66,14 @@ protected:
         auto bg1 = m_cfg.GetColor3("windows.secondary.bgColor", { 0.0f, 0.0f, 0.0f });
         r1->SetClearColor(bg1[0], bg1[1], bg1[2]);
 
-        DX12Renderer* r1Raw = r1.get();  
-
         WindowContext c1;
         c1.window = win1;
         c1.renderer = std::move(r1);
         RegisterContext(std::move(c1));          // idx 1 - secondary
 
-        DrawableDesc d1;
-        d1.material.shaderPath = shaderPath;
-        d1.material.baseColor = { 1.f, 0.85f, 0.15f, 1.f };
-        d1.mesh = MeshFactory::CreateTriangle(1.2f, d1.material.baseColor);
-
-        m_secondaryDrawable = r1Raw->CreateDrawable(d1);
-        if (m_secondaryDrawable)
-        {
-            ObjectTransform t;
-            t.scale = 1.0f;
-            m_secondaryDrawable->SetTransform(t);
-        }
-        else
-            UWU_WARN("Sandbox", "Secondary triangle Init failed - secondary window will be empty");
+        m_secondaryDesc.material.shaderPath = shaderPath;
+        m_secondaryDesc.material.baseColor = { 1.f, 0.85f, 0.15f, 1.f };
+        m_secondaryDesc.mesh = MeshFactory::CreateTriangle(1.2f, m_secondaryDesc.material.baseColor);
 
         // State chain (state manager runs against primary renderer)
         auto makePause = []() { return std::make_shared<GamePauseState>(); };
@@ -109,63 +91,47 @@ protected:
 
     void OnFixedUpdate(float fixedDt) override
     {
-        if (!m_secondaryDrawable) return;
-        auto t = m_secondaryDrawable->GetTransform();
-        t.rotation += 1.2f * fixedDt;   // steady ~1.2 rad/s regardless of FPS
+        m_secondaryRotation += 1.2f * fixedDt;   // steady ~1.2 rad/s regardless of FPS
+        if (!m_secondaryDrawable)
+            return;
+
+        ObjectTransform t = m_secondaryDrawable->GetTransform();
+        t.rotation = m_secondaryRotation;
         m_secondaryDrawable->SetTransform(t);
     }
 
-    void OnContextRender(int idx, IRenderer* /*renderer*/) override
+    void OnContextRender(int idx, IRenderer* renderer) override
     {
-        if (idx == 1 && m_secondaryDrawable && m_secondaryDrawable->IsReady())
+        if (idx != 1 || !renderer)
+            return;
+
+        if (!m_secondaryDrawable)
+        {
+            m_secondaryDrawable = renderer->CreateDrawable(m_secondaryDesc);
+            if (m_secondaryDrawable)
+            {
+                ObjectTransform t;
+                t.scale = 1.0f;
+                t.rotation = m_secondaryRotation;
+                m_secondaryDrawable->SetTransform(t);
+            }
+            else
+            {
+                UWU_WARN("Sandbox", "Secondary triangle Init failed - secondary window will be empty");
+                return;
+            }
+        }
+
+        if (m_secondaryDrawable->IsReady())
             m_secondaryDrawable->Draw();
     }
 
-    /*void OnUpdate(float dt) override
-    {
-        UpdateTriangle(GetContext(0), dt);
-        UpdateTriangle(GetContext(1), dt);
-    }*/
-
 private:
-    /*void UpdateTriangle(WindowContext& ctx, float dt)
-    {
-        auto* tri = ctx.triangle.get();
-        if (!tri) return;
-
-        auto& input = ctx.input;
-        ObjectTransform t = tri->GetTransform();
-
-        if (input.IsKeyDown(VK_LEFT))  t.x -= m_moveSpeed * dt;
-        if (input.IsKeyDown(VK_RIGHT)) t.x += m_moveSpeed * dt;
-        if (input.IsKeyDown(VK_UP))    t.y += m_moveSpeed * dt;
-        if (input.IsKeyDown(VK_DOWN))  t.y -= m_moveSpeed * dt;
-        t.x = std::clamp(t.x, -1.8f, 1.8f);
-        t.y = std::clamp(t.y, -1.8f, 1.8f);
-
-        const float dx = input.GetMouseDeltaX();
-        const float dy = input.GetMouseDeltaY();
-
-        if (input.IsMouseDown(MouseButton::Right))
-            t.rotation -= dx * m_rotateSpeed * 0.005f;
-
-        if (input.IsMouseDown(MouseButton::Left))
-        {
-            float scaleDriver = (std::abs(dy) >= std::abs(dx)) ? -dy : dx;
-            t.scale = std::clamp(t.scale + scaleDriver * m_scaleSpeed * 0.005f,
-                0.1f, 5.0f);
-        }
-
-        tri->SetTransform(t);
-    }*/
-
     Config m_cfg;
 
+    DrawableDesc m_secondaryDesc;
     std::unique_ptr<IDrawable> m_secondaryDrawable;
-
-    float  m_moveSpeed = 0.6f;
-    float  m_scaleSpeed = 0.5f;
-    float  m_rotateSpeed = 1.8f;
+    float m_secondaryRotation = 0.0f;
 };
 
 UwU_Engine::Application* UwU_Engine::CreateApplication()

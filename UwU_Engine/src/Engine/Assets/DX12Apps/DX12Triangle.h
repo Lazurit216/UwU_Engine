@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Renderer/IDrawable.h"
+#include "Engine/Renderer/DirectX12/DX12MeshGeometry.h"
 #include "Engine/Renderer/DirectX12/DX12Shader.h"
 #include "Engine/Renderer/DirectX12/DX12PipelineState.h"
 
@@ -33,30 +34,18 @@ namespace UwU_Engine
         bool BuildPSO(ID3D12Device* device);
 
     private:
-        // DX12-internal vertex (uses XMFLOAT3 for GPU layout)
-        struct DX12Vertex
-        {
-            DirectX::XMFLOAT3 Position;
-            DirectX::XMFLOAT3 Color;
-            DirectX::XMFLOAT2 TexCoord;
-        };
-
         DX12Renderer* m_renderer = nullptr; // borrowed, not owned
 
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
-        Microsoft::WRL::ComPtr<ID3D12Resource>      m_vertexBuffer;
-        Microsoft::WRL::ComPtr<ID3D12Resource>      m_indexBuffer;
         Microsoft::WRL::ComPtr<ID3D12Resource>      m_textureResource;
         Microsoft::WRL::ComPtr<ID3D12Resource>      m_textureUploadBuffer;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
-        D3D12_VERTEX_BUFFER_VIEW                    m_vbView{};
-        D3D12_INDEX_BUFFER_VIEW                     m_ibView{};
-        UINT                                        m_indexCount = 0;
 
         Microsoft::WRL::ComPtr<ID3D12Resource>      m_cbResource;
         void* m_cbMapped = nullptr;
         D3D12_GPU_VIRTUAL_ADDRESS                   m_cbGPUAddress = 0;
 
+        DX12MeshGeometry                      m_geometry;
         DX12Shader                            m_vs;
         DX12Shader                            m_ps;
         DX12PipelineState                     m_pso;

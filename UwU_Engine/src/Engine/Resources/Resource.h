@@ -7,6 +7,7 @@ namespace UwU_Engine
     enum class ResourceState
     {
         Unloaded,
+        Loading,
         Loaded,
         Failed
     };
@@ -17,12 +18,33 @@ namespace UwU_Engine
         virtual ~IResource() = default;
 
         const std::string& GetPath() const { return m_path; }
-        ResourceState GetState() const { return m_state; }
-        const std::string& GetError() const { return m_error; }
-        bool IsLoaded() const { return m_state == ResourceState::Loaded; }
+
+        ResourceState GetState() const
+        {
+            std::scoped_lock lock(m_stateMutex);
+            return m_state;
+        }
+
+        std::string GetError() const
+        {
+            std::scoped_lock lock(m_stateMutex);
+            return m_error;
+        }
+
+        bool IsLoaded() const { return GetState() == ResourceState::Loaded; }
+        bool IsLoading() const { return GetState() == ResourceState::Loading; }
+        bool IsFailed() const { return GetState() == ResourceState::Failed; }
 
     protected:
+        void SetState(ResourceState state, std::string error = {})
+        {
+            std::scoped_lock lock(m_stateMutex);
+            m_state = state;
+            m_error = std::move(error);
+        }
+
         std::string m_path;
+        mutable std::mutex m_stateMutex;
         ResourceState m_state = ResourceState::Unloaded;
         std::string m_error;
     };
@@ -41,17 +63,26 @@ namespace UwU_Engine
 
         std::filesystem::file_time_type GetLastWriteTime() const { return m_lastWriteTime; }
 
+        void MarkLoading()
+        {
+            SetState(ResourceState::Loading);
+        }
+
         void MarkLoaded(std::filesystem::file_time_type lastWriteTime = {})
         {
-            m_state = ResourceState::Loaded;
-            m_error.clear();
             m_lastWriteTime = lastWriteTime;
+            SetState(ResourceState::Loaded);
+        }
+
+        void SetDataLoaded(T data, std::filesystem::file_time_type lastWriteTime = {})
+        {
+            m_data = std::move(data);
+            MarkLoaded(lastWriteTime);
         }
 
         void MarkFailed(std::string error)
         {
-            m_state = ResourceState::Failed;
-            m_error = std::move(error);
+            SetState(ResourceState::Failed, std::move(error));
         }
 
     private:

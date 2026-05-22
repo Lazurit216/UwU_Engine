@@ -2,10 +2,10 @@
 
 #include "Engine/Core.h"
 #include "Engine/ECS/Components.h"
+#include "Engine/ECS/RenderResourceBinder.h"
 #include "Engine/ECS/SpatialGrid.h"
 #include "Engine/ECS/System.h"
 #include "Engine/Renderer/IRenderer.h"
-#include "Engine/Resources/ResourceManager.h"
 
 namespace UwU_Engine
 {
@@ -18,6 +18,12 @@ namespace UwU_Engine
             TransformComponent transform;
             CameraComponent camera;
             SpatialBounds2D visibleBounds;
+            std::array<float, 16> viewProjection = {
+                1.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 1.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 1.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f
+            };
         };
 
     public:
@@ -28,7 +34,7 @@ namespace UwU_Engine
             if (!renderer || !renderer->IsReady())
                 return;
 
-            const CameraView camera = FindActiveCamera(world);
+            const CameraView camera = FindActiveCamera(world, renderer);
             m_spatialGrid.Clear();
 
             world.ForEach<TransformComponent, MeshRendererComponent>(
@@ -56,7 +62,10 @@ namespace UwU_Engine
 
                     ObjectTransform objectTransform = ToObjectTransform(world, entity, transform);
                     if (camera.enabled)
-                        objectTransform = ApplyCamera(objectTransform, camera);
+                    {
+                        objectTransform.useViewProjection = true;
+                        objectTransform.viewProjection = camera.viewProjection;
+                    }
 
                     mesh.drawable->SetTransform(objectTransform);
                     mesh.drawable->Draw();
@@ -79,7 +88,8 @@ namespace UwU_Engine
     private:
         bool EnsureDrawable(World& world, EntityId entity, MeshRendererComponent& mesh, IRenderer* renderer)
         {
-            LoadResources(entity, mesh);
+            if (!m_resourceBinder.Update(entity, mesh))
+                return false;
 
             if (mesh.mesh.primitive != PrimitiveType::Triangle
                 && mesh.mesh.primitive != PrimitiveType::CustomMesh)
@@ -118,108 +128,22 @@ namespace UwU_Engine
             return true;
         }
 
-        void LoadResources(EntityId entity, MeshRendererComponent& mesh)
-        {
-            auto& resources = ResourceManager::Instance();
-
-            if (!mesh.meshResourcePath.empty() && !mesh.meshResource)
-            {
-                mesh.meshResource = resources.Load<MeshAsset>(mesh.meshResourcePath);
-                if (mesh.meshResource && mesh.meshResource->IsLoaded())
-                {
-                    const MeshAsset& meshAsset = mesh.meshResource->GetData();
-                    mesh.mesh = meshAsset.mesh;
-                    ApplyMeshAssetMaterial(mesh, meshAsset);
-                    ApplyMaterialColor(mesh.mesh, mesh.material.baseColor);
-                    UWU_ENGINE_INFO("[RenderSystem] Entity {} uses mesh resource '{}'",
-                        entity, mesh.meshResourcePath);
-                }
-                else if (!mesh.meshLoadFailedLogged)
-                {
-                    UWU_ENGINE_WARN("[RenderSystem] Entity {} mesh resource '{}' is unavailable",
-                        entity, mesh.meshResourcePath);
-                    mesh.meshLoadFailedLogged = true;
-                }
-            }
-
-            if (!mesh.material.texturePath.empty() && !mesh.textureResource)
-            {
-                mesh.textureResource = resources.Load<TextureAsset>(mesh.material.texturePath);
-                if (mesh.textureResource && mesh.textureResource->IsLoaded())
-                {
-                    const auto& texture = mesh.textureResource->GetData().texture;
-                    mesh.material.textureWidth = texture.width;
-                    mesh.material.textureHeight = texture.height;
-                    mesh.material.textureChannels = texture.channels;
-                    mesh.material.texturePixels = texture.pixels;
-                    UWU_ENGINE_INFO("[RenderSystem] Entity {} uses texture resource '{}'",
-                        entity, mesh.material.texturePath);
-                }
-                else
-                {
-                    if (!mesh.textureLoadFailedLogged)
-                    {
-                        UWU_ENGINE_WARN("[RenderSystem] Entity {} texture resource '{}' is unavailable",
-                            entity, mesh.material.texturePath);
-                        mesh.textureLoadFailedLogged = true;
-                    }
-                }
-            }
-
-            const std::string shaderPath = NarrowPath(mesh.material.shaderPath);
-            if (!shaderPath.empty() && !mesh.shaderResource)
-            {
-                mesh.shaderResource = resources.Load<ShaderAsset>(shaderPath);
-                if (!mesh.shaderResource || !mesh.shaderResource->IsLoaded())
-                {
-                    if (!mesh.shaderLoadFailedLogged)
-                    {
-                        UWU_ENGINE_WARN("[RenderSystem] Entity {} shader resource '{}' is unavailable",
-                            entity, shaderPath);
-                        mesh.shaderLoadFailedLogged = true;
-                    }
-                }
-            }
-        }
-
         ObjectTransform ToObjectTransform(World& world, EntityId entity, const TransformComponent& transform) const
         {
             ObjectTransform local;
             local.x = transform.x;
             local.y = transform.y;
-            local.rotation = transform.rotationZ;
+            local.z = transform.z;
+            local.rotation = 0.0f;
+            local.rotationX = transform.rotationX;
             local.rotationY = transform.rotationY;
-            local.scale = (transform.scaleX + transform.scaleY) * 0.5f;
+            local.rotationZ = transform.rotationZ;
+            local.scale = 1.0f;
+            local.scaleX = transform.scaleX;
+            local.scaleY = transform.scaleY;
+            local.scaleZ = transform.scaleZ;
 
             return CombineWithParents(world, entity, local, 0);
-        }
-
-        void ApplyMaterialColor(MeshData& mesh, const Color4& color) const
-        {
-            for (Vertex& vertex : mesh.vertices)
-            {
-                vertex.color[0] *= color.r;
-                vertex.color[1] *= color.g;
-                vertex.color[2] *= color.b;
-            }
-        }
-
-        void ApplyMeshAssetMaterial(MeshRendererComponent& renderer, const MeshAsset& asset) const
-        {
-            if (renderer.material.texturePath.empty() && asset.material.hasDiffuseTexture)
-            {
-                renderer.material.texturePath = asset.material.diffuseTexturePath;
-                UWU_ENGINE_INFO("[RenderSystem] Using mesh material texture '{}'",
-                    renderer.material.texturePath);
-            }
-
-            if (asset.material.hasDiffuseColor)
-            {
-                renderer.material.baseColor.r *= asset.material.diffuseColor.r;
-                renderer.material.baseColor.g *= asset.material.diffuseColor.g;
-                renderer.material.baseColor.b *= asset.material.diffuseColor.b;
-                renderer.material.baseColor.a *= asset.material.diffuseColor.a;
-            }
         }
 
         ObjectTransform CombineWithParents(World& world, EntityId entity, ObjectTransform local, int depth) const
@@ -238,31 +162,48 @@ namespace UwU_Engine
             ObjectTransform parent;
             parent.x = parentTransform->x;
             parent.y = parentTransform->y;
-            parent.rotation = parentTransform->rotationZ;
+            parent.z = parentTransform->z;
+            parent.rotation = 0.0f;
+            parent.rotationX = parentTransform->rotationX;
             parent.rotationY = parentTransform->rotationY;
-            parent.scale = (parentTransform->scaleX + parentTransform->scaleY) * 0.5f;
+            parent.rotationZ = parentTransform->rotationZ;
+            parent.scale = 1.0f;
+            parent.scaleX = parentTransform->scaleX;
+            parent.scaleY = parentTransform->scaleY;
+            parent.scaleZ = parentTransform->scaleZ;
             parent = CombineWithParents(world, hierarchy->parent, parent, depth + 1);
 
-            const float scaledX = local.x * parent.scale;
-            const float scaledY = local.y * parent.scale;
-            const float c = std::cos(parent.rotation);
-            const float s = std::sin(parent.rotation);
+            const float parentRotationZ = parent.rotation + parent.rotationZ;
+            const float localRotationZ = local.rotation + local.rotationZ;
+            const float scaledX = local.x * parent.scale * parent.scaleX;
+            const float scaledY = local.y * parent.scale * parent.scaleY;
+            const float c = std::cos(parentRotationZ);
+            const float s = std::sin(parentRotationZ);
 
             ObjectTransform worldTransform;
             worldTransform.x = parent.x + scaledX * c - scaledY * s;
             worldTransform.y = parent.y + scaledX * s + scaledY * c;
-            worldTransform.rotation = parent.rotation + local.rotation;
+            worldTransform.z = parent.z + local.z * parent.scale * parent.scaleZ;
+            worldTransform.rotation = 0.0f;
+            worldTransform.rotationX = parent.rotationX + local.rotationX;
             worldTransform.rotationY = parent.rotationY + local.rotationY;
+            worldTransform.rotationZ = parentRotationZ + localRotationZ;
             worldTransform.scale = parent.scale * local.scale;
+            worldTransform.scaleX = parent.scaleX * local.scaleX;
+            worldTransform.scaleY = parent.scaleY * local.scaleY;
+            worldTransform.scaleZ = parent.scaleZ * local.scaleZ;
             return worldTransform;
         }
 
-        CameraView FindActiveCamera(World& world) const
+        CameraView FindActiveCamera(World& world, IRenderer* renderer) const
         {
             CameraView view;
+            const float width = renderer ? static_cast<float>(renderer->GetWidth()) : 1.0f;
+            const float height = renderer ? static_cast<float>(renderer->GetHeight()) : 1.0f;
+            const float aspect = height > 0.0f ? width / height : 1.0f;
 
             world.ForEach<TransformComponent, CameraComponent>(
-                [&view](EntityId /*entity*/, TransformComponent& transform, CameraComponent& camera)
+                [&view, aspect](EntityId /*entity*/, TransformComponent& transform, CameraComponent& camera)
                 {
                     if (view.enabled || !camera.primary)
                         return;
@@ -272,7 +213,7 @@ namespace UwU_Engine
                     view.camera = camera;
 
                     const float zoom = (std::max)(camera.zoom, 0.01f);
-                    const float halfWidth = camera.viewHalfWidth / zoom;
+                    const float halfWidth = (std::max)(camera.viewHalfWidth, camera.viewHalfHeight * aspect) / zoom;
                     const float halfHeight = camera.viewHalfHeight / zoom;
                     view.visibleBounds = SpatialBounds2D{
                         transform.x - halfWidth,
@@ -280,26 +221,30 @@ namespace UwU_Engine
                         transform.x + halfWidth,
                         transform.y + halfHeight
                     };
+
+                    const float nearPlane = (std::max)(camera.nearPlane, 0.001f);
+                    const float farPlane = (std::max)(camera.farPlane, nearPlane + 1.0f);
+
+                    const DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixTranslation(
+                        -transform.x,
+                        -transform.y,
+                        -transform.z);
+                    const DirectX::XMMATRIX projectionMatrix = DirectX::XMMatrixOrthographicLH(
+                        halfWidth * 2.0f,
+                        halfHeight * 2.0f,
+                        nearPlane,
+                        farPlane);
+
+                    DirectX::XMFLOAT4X4 matrixData;
+                    DirectX::XMStoreFloat4x4(&matrixData, viewMatrix * projectionMatrix);
+                    for (int row = 0; row < 4; ++row)
+                    {
+                        for (int column = 0; column < 4; ++column)
+                            view.viewProjection[row * 4 + column] = matrixData.m[row][column];
+                    }
                 });
 
             return view;
-        }
-
-        ObjectTransform ApplyCamera(const ObjectTransform& worldTransform, const CameraView& camera) const
-        {
-            const float dx = worldTransform.x - camera.transform.x;
-            const float dy = worldTransform.y - camera.transform.y;
-            const float inverseRotation = -camera.transform.rotationZ;
-            const float c = std::cos(inverseRotation);
-            const float s = std::sin(inverseRotation);
-
-            ObjectTransform result;
-            result.x = (dx * c - dy * s) * camera.camera.zoom;
-            result.y = (dx * s + dy * c) * camera.camera.zoom;
-            result.rotation = worldTransform.rotation - camera.transform.rotationZ;
-            result.rotationY = worldTransform.rotationY;
-            result.scale = worldTransform.scale * camera.camera.zoom;
-            return result;
         }
 
         SpatialBounds2D ComputeBounds(const MeshData& mesh, const ObjectTransform& transform) const
@@ -323,8 +268,9 @@ namespace UwU_Engine
                 }
             }
 
-            const float c = std::cos(transform.rotation);
-            const float s = std::sin(transform.rotation);
+            const float rotationZ = transform.rotation + transform.rotationZ;
+            const float c = std::cos(rotationZ);
+            const float s = std::sin(rotationZ);
             const float corners[4][2] = {
                 { minX, minY },
                 { minX, maxY },
@@ -336,8 +282,8 @@ namespace UwU_Engine
             bool first = true;
             for (const auto& corner : corners)
             {
-                const float scaledX = corner[0] * transform.scale;
-                const float scaledY = corner[1] * transform.scale;
+                const float scaledX = corner[0] * transform.scale * transform.scaleX;
+                const float scaledY = corner[1] * transform.scale * transform.scaleY;
                 const float worldX = transform.x + scaledX * c - scaledY * s;
                 const float worldY = transform.y + scaledX * s + scaledY * c;
 
@@ -359,15 +305,7 @@ namespace UwU_Engine
             return bounds;
         }
 
-        std::string NarrowPath(const std::wstring& value) const
-        {
-            std::string result;
-            result.reserve(value.size());
-            for (wchar_t ch : value)
-                result.push_back(ch >= 0 && ch <= 127 ? static_cast<char>(ch) : '?');
-            return result;
-        }
-
+        RenderResourceBinder m_resourceBinder;
         SpatialGrid m_spatialGrid{ 1.0f };
     };
 }

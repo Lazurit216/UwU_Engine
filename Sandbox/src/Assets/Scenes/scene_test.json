@@ -60,12 +60,15 @@
     {
       "id": 5,
       "tag": { "name": "Main camera" },
-      "transform": { "x": 0.0, "y": 0.0, "z": 0.0, "rotationZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0 },
+      "transform": { "x": 0.0, "y": 0.0, "z": -3.0, "rotationX": 0.0, "rotationY": 0.0, "rotationZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0 },
       "camera": {
         "primary": true,
         "zoom": 1.0,
         "viewHalfWidth": 1.8,
         "viewHalfHeight": 1.0,
+        "fovYRadians": 1.04719755,
+        "nearPlane": 0.01,
+        "farPlane": 100.0,
         "moveSpeed": 0.8,
         "zoomSpeed": 1.0
       }
@@ -73,10 +76,24 @@
     {
       "id": 6,
       "tag": { "name": "Shiba model" },
-      "transform": { "x": 0.85, "y": 0.18, "z": 0.0, "rotationZ": 0.0, "rotationY": 1.5708, "scaleX": 1.25, "scaleY": 1.25, "scaleZ": 1.25 },
+      "transform": { "x": 0.85, "y": 0.18, "z": 0.0, "rotationX": 0.0, "rotationY": 1.5708, "rotationZ": 0.0, "scaleX": 1.25, "scaleY": 1.25, "scaleZ": 1.25 },
       "meshRenderer": {
         "primitive": "CustomMesh",
         "meshPath": "Assets\\Models\\Shiba\\Shiba.obj",
+        "materialPath": "Assets\\Materials\\Shiba.material.json",
+        "shaderPath": "",
+        "texturePath": "",
+        "color": [ 1.0, 1.0, 1.0, 1.0 ]
+      }
+    },
+    {
+      "id": 7,
+      "tag": { "name": "Static Shiba model" },
+      "transform": { "x": -1.05, "y": 0.28, "z": 0.0, "rotationX": 0.0, "rotationY": 1.5708, "rotationZ": 0.0, "scaleX": 0.75, "scaleY": 0.75, "scaleZ": 0.75 },
+      "meshRenderer": {
+        "primitive": "CustomMesh",
+        "meshPath": "Assets\\Models\\Shiba\\Shiba.obj",
+        "materialPath": "Assets\\Materials\\Shiba.material.json",
         "shaderPath": "",
         "texturePath": "",
         "color": [ 1.0, 1.0, 1.0, 1.0 ]

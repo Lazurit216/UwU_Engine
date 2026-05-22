@@ -7,14 +7,27 @@
 
 namespace UwU_Engine
 {
-    //2D world transform (NDC coordinates)
+    // World transform. ECS systems may also attach a camera view-projection matrix.
     struct UWU_API ObjectTransform
     {
-        float x = 0.f;   // horizontal offset  [-1.8 .. 1.8]
-        float y = 0.f;   // vertical offset    [-1.8 .. 1.8]
+        float x = 0.f;
+        float y = 0.f;
+        float z = 0.f;
         float scale = 1.f;   // uniform scale      [ 0.1 ..  5.0]
+        float scaleX = 1.f;
+        float scaleY = 1.f;
+        float scaleZ = 1.f;
         float rotation = 0.f;   // radians, CCW
+        float rotationX = 0.f;  // radians
         float rotationY = 0.f;  // radians
+        float rotationZ = 0.f;  // radians
+        bool useViewProjection = false;
+        std::array<float, 16> viewProjection = {
+            1.f, 0.f, 0.f, 0.f,
+            0.f, 1.f, 0.f, 0.f,
+            0.f, 0.f, 1.f, 0.f,
+            0.f, 0.f, 0.f, 1.f
+        };
     };
 
     struct Vertex
@@ -54,6 +67,11 @@ namespace UwU_Engine
     {
         Color4 baseColor;
         std::wstring shaderPath = L"Assets/Shaders/Color.hlsl";
+        std::string shaderSourceCode;
+        std::string vertexEntry = "VS";
+        std::string pixelEntry = "PS";
+        std::string vertexProfile = "vs_5_0";
+        std::string pixelProfile = "ps_5_0";
         std::string texturePath;
         int textureWidth = 0;
         int textureHeight = 0;
@@ -72,14 +90,16 @@ namespace UwU_Engine
     public:
         static MeshData CreateTriangle(float size = 1.0f, Color4 color = {})
         {
-            const float h = size * 0.5f;
+            const float halfSide = size * 0.5f;
+            const float bottomY = -size * 0.2886751346f; // -sqrt(3) / 6
+            const float topY = size * 0.5773502692f;     //  sqrt(3) / 3
 
             MeshData mesh;
             mesh.primitive = PrimitiveType::Triangle;
             mesh.vertices = {
-                {{ 0.0f,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.5f, 0.0f }, { color.r, color.g, color.b }},
-                {{ h,    -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f }, { color.r, color.g, color.b }},
-                {{-h,    -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f }, { color.r, color.g, color.b }},
+                {{ 0.0f,     topY,   0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.5f, 0.0f }, { color.r, color.g, color.b }},
+                {{ halfSide, bottomY, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f }, { color.r, color.g, color.b }},
+                {{-halfSide, bottomY, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f }, { color.r, color.g, color.b }},
             };
             mesh.indices = { 0, 1, 2 };
             return mesh;

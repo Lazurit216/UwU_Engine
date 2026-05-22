@@ -14,12 +14,13 @@ namespace UwU_Engine
         float y = 0.0f;
         float z = 0.0f;
 
-        float rotationZ = 0.0f;
-        float rotationY = 0.0f;
-
         float scaleX = 1.0f;
         float scaleY = 1.0f;
         float scaleZ = 1.0f;
+
+        float rotationX = 0.0f;
+        float rotationY = 0.0f;
+        float rotationZ = 0.0f;
     };
 
     struct TagComponent
@@ -32,10 +33,12 @@ namespace UwU_Engine
         MeshData mesh;
         MaterialDesc material;
         std::string meshResourcePath;
+        std::string materialResourcePath;
 
         std::shared_ptr<Resource<MeshAsset>> meshResource;
         std::shared_ptr<Resource<TextureAsset>> textureResource;
         std::shared_ptr<Resource<ShaderAsset>> shaderResource;
+        std::shared_ptr<Resource<MaterialAsset>> materialResource;
         std::unique_ptr<IDrawable> drawable;
         bool initFailedLogged = false;
         bool unsupportedLogged = false;
@@ -43,6 +46,12 @@ namespace UwU_Engine
         bool meshLoadFailedLogged = false;
         bool textureLoadFailedLogged = false;
         bool shaderLoadFailedLogged = false;
+        bool materialLoadFailedLogged = false;
+        bool meshResourceApplied = false;
+        bool textureResourceApplied = false;
+        bool shaderResourceApplied = false;
+        bool materialResourceApplied = false;
+        bool placeholderMeshApplied = false;
 
         MeshRendererComponent() = default;
         MeshRendererComponent(MeshData meshData, MaterialDesc materialDesc)
@@ -66,9 +75,11 @@ namespace UwU_Engine
             mesh = std::move(other.mesh);
             material = std::move(other.material);
             meshResourcePath = std::move(other.meshResourcePath);
+            materialResourcePath = std::move(other.materialResourcePath);
             meshResource = std::move(other.meshResource);
             textureResource = std::move(other.textureResource);
             shaderResource = std::move(other.shaderResource);
+            materialResource = std::move(other.materialResource);
             drawable = std::move(other.drawable);
             initFailedLogged = other.initFailedLogged;
             unsupportedLogged = other.unsupportedLogged;
@@ -76,6 +87,12 @@ namespace UwU_Engine
             meshLoadFailedLogged = other.meshLoadFailedLogged;
             textureLoadFailedLogged = other.textureLoadFailedLogged;
             shaderLoadFailedLogged = other.shaderLoadFailedLogged;
+            materialLoadFailedLogged = other.materialLoadFailedLogged;
+            meshResourceApplied = other.meshResourceApplied;
+            textureResourceApplied = other.textureResourceApplied;
+            shaderResourceApplied = other.shaderResourceApplied;
+            materialResourceApplied = other.materialResourceApplied;
+            placeholderMeshApplied = other.placeholderMeshApplied;
             return *this;
         }
 
@@ -98,6 +115,9 @@ namespace UwU_Engine
         float zoom = 1.0f;
         float viewHalfWidth = 1.8f;
         float viewHalfHeight = 1.0f;
+        float fovYRadians = 1.04719755f;
+        float nearPlane = 0.01f;
+        float farPlane = 100.0f;
         float moveSpeed = 0.8f;
         float zoomSpeed = 1.0f;
     };

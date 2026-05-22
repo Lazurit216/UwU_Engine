@@ -104,13 +104,13 @@ namespace UwU_Engine
 #endif
 
         std::ostringstream line;
-        line << std::format("{:%H:%M:%S}.{:03d} [{}] [{}] {}\n",
-            std::chrono::floor<std::chrono::seconds>(now),
-            ms.count(),
-            LevelTag(level),
-            m_name,
-            message
-        );
+        line << std::put_time(&tm, "%H:%M:%S")
+            << '.'
+            << std::setw(3) << std::setfill('0') << ms.count()
+            << " [" << LevelTag(level) << ']'
+            << " [" << m_name << "] "
+            << message
+            << '\n';
 
         std::string formatted = line.str();
 

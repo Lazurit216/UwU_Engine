@@ -45,4 +45,12 @@ namespace UwU_Engine
     {
         ShaderProgramData shader;
     };
+
+    struct MaterialAsset
+    {
+        MaterialDesc material;
+        bool hasBaseColor = false;
+        bool hasShaderPath = false;
+        bool hasTexturePath = false;
+    };
 }

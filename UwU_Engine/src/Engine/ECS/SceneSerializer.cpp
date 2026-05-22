@@ -111,8 +111,9 @@ namespace UwU_Engine
                 { "x", transform.x },
                 { "y", transform.y },
                 { "z", transform.z },
-                { "rotationZ", transform.rotationZ },
+                { "rotationX", transform.rotationX },
                 { "rotationY", transform.rotationY },
+                { "rotationZ", transform.rotationZ },
                 { "scaleX", transform.scaleX },
                 { "scaleY", transform.scaleY },
                 { "scaleZ", transform.scaleZ }
@@ -125,8 +126,9 @@ namespace UwU_Engine
             transform.x = ReadFloat(value, "x", 0.0f);
             transform.y = ReadFloat(value, "y", 0.0f);
             transform.z = ReadFloat(value, "z", 0.0f);
-            transform.rotationZ = ReadFloat(value, "rotationZ", 0.0f);
+            transform.rotationX = ReadFloat(value, "rotationX", 0.0f);
             transform.rotationY = ReadFloat(value, "rotationY", 0.0f);
+            transform.rotationZ = ReadFloat(value, "rotationZ", 0.0f);
             transform.scaleX = ReadFloat(value, "scaleX", 1.0f);
             transform.scaleY = ReadFloat(value, "scaleY", 1.0f);
             transform.scaleZ = ReadFloat(value, "scaleZ", 1.0f);
@@ -222,6 +224,7 @@ namespace UwU_Engine
                 node["meshRenderer"] = Json{
                     { "primitive", PrimitiveToString(mesh->mesh.primitive) },
                     { "meshPath", mesh->meshResourcePath.empty() ? mesh->mesh.sourcePath : mesh->meshResourcePath },
+                    { "materialPath", mesh->materialResourcePath },
                     { "shaderPath", NarrowPath(mesh->material.shaderPath) },
                     { "texturePath", mesh->material.texturePath },
                     { "color", Json::array({ color.r, color.g, color.b, color.a }) }
@@ -243,6 +246,9 @@ namespace UwU_Engine
                     { "zoom", camera->zoom },
                     { "viewHalfWidth", camera->viewHalfWidth },
                     { "viewHalfHeight", camera->viewHalfHeight },
+                    { "fovYRadians", camera->fovYRadians },
+                    { "nearPlane", camera->nearPlane },
+                    { "farPlane", camera->farPlane },
                     { "moveSpeed", camera->moveSpeed },
                     { "zoomSpeed", camera->zoomSpeed }
                 };
@@ -334,6 +340,9 @@ namespace UwU_Engine
                 const std::string texturePath = ResolveSceneAssetPath(
                     filePath,
                     ReadString(*meshRenderer, "texturePath"));
+                const std::string materialPath = ResolveSceneAssetPath(
+                    filePath,
+                    ReadString(*meshRenderer, "materialPath"));
 
                 mesh.sourcePath = meshPath;
 
@@ -348,6 +357,7 @@ namespace UwU_Engine
                     entity,
                     MeshRendererComponent{ std::move(mesh), std::move(material) });
                 component.meshResourcePath = meshPath;
+                component.materialResourcePath = materialPath;
             }
 
             const Json* camera = FindMember(node, "camera");
@@ -358,6 +368,9 @@ namespace UwU_Engine
                 component.zoom = std::clamp(ReadFloat(*camera, "zoom", 1.0f), 0.25f, 4.0f);
                 component.viewHalfWidth = ReadFloat(*camera, "viewHalfWidth", 1.8f);
                 component.viewHalfHeight = ReadFloat(*camera, "viewHalfHeight", 1.0f);
+                component.fovYRadians = ReadFloat(*camera, "fovYRadians", 1.04719755f);
+                component.nearPlane = ReadFloat(*camera, "nearPlane", 0.01f);
+                component.farPlane = ReadFloat(*camera, "farPlane", 100.0f);
                 component.moveSpeed = ReadFloat(*camera, "moveSpeed", 0.8f);
                 component.zoomSpeed = ReadFloat(*camera, "zoomSpeed", 1.0f);
                 world.AddComponent<CameraComponent>(entity, component);

@@ -1,6 +1,8 @@
 #include "uwupch.h"
 #include "TextureLoader.h"
 
+#include "Engine/Resources/BinaryResourceCache.h"
+
 #ifdef UWU_HAS_STB_IMAGE
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -10,6 +12,19 @@ namespace UwU_Engine
 {
     bool TextureLoader::Load(const std::string& path, TextureAsset& out, std::string& error)
     {
+        const std::string cachePath = BinaryResourceCache::TextureCachePath(path);
+        if (BinaryResourceCache::IsFresh(path, cachePath))
+        {
+            std::string cacheError;
+            if (BinaryResourceCache::LoadTexture(cachePath, out, cacheError))
+            {
+                UWU_ENGINE_INFO("[TextureLoader] Loaded texture binary cache '{}'", cachePath);
+                return true;
+            }
+
+            UWU_ENGINE_WARN("[TextureLoader] Texture binary cache '{}' failed: {}", cachePath, cacheError);
+        }
+
 #ifndef UWU_HAS_STB_IMAGE
         error = "stb_image is not configured. Put stb_image.h into ExternalLibs/stb_image.";
         return false;
@@ -33,6 +48,10 @@ namespace UwU_Engine
         out.texture.channels = outputChannels;
         out.texture.pixels.assign(pixels, pixels + byteCount);
         stbi_image_free(pixels);
+
+        std::string cacheError;
+        if (!BinaryResourceCache::SaveTexture(cachePath, out, cacheError))
+            UWU_ENGINE_WARN("[TextureLoader] Cannot save texture binary cache '{}': {}", cachePath, cacheError);
 
         UWU_ENGINE_INFO("[TextureLoader] Loaded '{}' ({}x{}, {} channels)",
             path, width, height, outputChannels);

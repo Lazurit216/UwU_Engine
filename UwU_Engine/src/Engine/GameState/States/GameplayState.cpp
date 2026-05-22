@@ -159,26 +159,27 @@ namespace UwU_Engine
         m_controlledEntity = kInvalidEntity;
         m_controlledChildEntity = kInvalidEntity;
         m_spinnerEntity = kInvalidEntity;
+        m_modelEntity = kInvalidEntity;
         m_cameraEntity = kInvalidEntity;
 
         m_controlledEntity = CreateTriangleEntity(
             "Player triangle",
-            TransformComponent{ -0.85f, -0.30f, 0.0f, 0.0f, 0.42f, 0.42f, 1.0f },
+            TransformComponent{ -0.85f, -0.30f, 0.0f, 0.42f, 0.42f, 1.0f },
             Color4{ 0.95f, 0.15f, 0.18f, 1.0f });
 
         m_controlledChildEntity = CreateTriangleEntity(
             "Player child triangle",
-            TransformComponent{ 1.05f, 0.0f, 0.0f, 0.0f, 0.45f, 0.45f, 1.0f },
+            TransformComponent{ 1.05f, 0.0f, 0.0f, 0.45f, 0.45f, 1.0f },
             Color4{ 1.0f, 0.95f, 0.25f, 1.0f });
 
         m_spinnerEntity = CreateTriangleEntity(
             "Auto spinner",
-            TransformComponent{ -0.20f, 0.28f, 0.0f, 0.0f, 0.34f, 0.34f, 1.0f },
+            TransformComponent{ -0.20f, 0.28f, 0.0f, 0.34f, 0.34f, 1.0f },
             Color4{ 0.15f, 0.90f, 0.30f, 1.0f });
 
         CreateTriangleEntity(
             "Static blue triangle",
-            TransformComponent{ 0.15f, -0.42f, 0.0f, 0.35f, 0.30f, 0.30f, 1.0f },
+            TransformComponent{ 0.15f, -0.42f, 0.0f, 0.30f, 0.30f, 1.0f, 0.0f, 0.0f, 0.35f },
             Color4{ 0.20f, 0.45f, 1.0f, 1.0f });
 
         auto& parentHierarchy = m_world.AddComponent<HierarchyComponent>(m_controlledEntity);
@@ -196,6 +197,7 @@ namespace UwU_Engine
         m_controlledEntity = FindEntityByTag("Player triangle");
         m_controlledChildEntity = FindEntityByTag("Player child triangle");
         m_spinnerEntity = FindEntityByTag("Auto spinner");
+        m_modelEntity = FindEntityByTag("Shiba model");
         m_cameraEntity = FindEntityByTag("Main camera");
     }
 
@@ -236,13 +238,16 @@ namespace UwU_Engine
         m_world.AddComponent<TagComponent>(entity, TagComponent{ "Main camera" });
         m_world.AddComponent<TransformComponent>(
             entity,
-            TransformComponent{ 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f });
+            TransformComponent{ 0.0f, 0.0f, -3.0f, 1.0f, 1.0f, 1.0f });
 
         CameraComponent camera;
         camera.primary = true;
         camera.zoom = 1.0f;
         camera.viewHalfWidth = 1.8f;
         camera.viewHalfHeight = 1.0f;
+        camera.fovYRadians = 1.04719755f;
+        camera.nearPlane = 0.01f;
+        camera.farPlane = 100.0f;
         camera.moveSpeed = 0.8f;
         camera.zoomSpeed = 1.0f;
         m_world.AddComponent<CameraComponent>(entity, camera);
@@ -263,6 +268,9 @@ namespace UwU_Engine
 
         if (auto* child = m_world.GetComponent<TransformComponent>(m_controlledChildEntity))
             child->rotationZ -= 1.7f * dt;
+
+        if (auto* model = m_world.GetComponent<TransformComponent>(m_modelEntity))
+            model->rotationY += 0.8f * dt;
 
         if (!ctx.input)
             return;

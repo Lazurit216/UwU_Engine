@@ -56,19 +56,36 @@ namespace UwU_Engine
                 m_renderer ? "OK" : "NULL",
                 m_renderer->GetCommandList() ? "OK" : "NULL");
         
-        const float width = static_cast<float>(m_renderer->GetWidth());
-        const float height = static_cast<float>(m_renderer->GetHeight());
-        const float aspect = (height > 0.0f) ? width / height : 1.0f;
+        const float scaleX = m_transform.scale * m_transform.scaleX;
+        const float scaleY = m_transform.scale * m_transform.scaleY;
+        const float scaleZ = m_transform.scale * m_transform.scaleZ;
+        const float rotationZ = m_transform.rotation + m_transform.rotationZ;
 
         XMMATRIX world =
-            XMMatrixScaling(m_transform.scale, m_transform.scale, 1.f)
-            * XMMatrixScaling(aspect, 1.f, 1.f)
-            * XMMatrixRotationY(m_transform.rotationY)
-            * XMMatrixRotationZ(m_transform.rotation)
-            * XMMatrixScaling(1.f / aspect, 1.f, 1.f)
-            * XMMatrixTranslation(m_transform.x, m_transform.y, 0.f);
+            XMMatrixScaling(scaleX, scaleY, scaleZ)
+            * XMMatrixRotationRollPitchYaw(m_transform.rotationX, m_transform.rotationY, rotationZ)
+            * XMMatrixTranslation(m_transform.x, m_transform.y, m_transform.z);
 
-        memcpy(m_cbMapped, &world, sizeof(XMMATRIX));
+        XMMATRIX finalTransform = world;
+        if (m_transform.useViewProjection)
+        {
+            XMFLOAT4X4 viewProjectionData;
+            for (int row = 0; row < 4; ++row)
+            {
+                for (int column = 0; column < 4; ++column)
+                    viewProjectionData.m[row][column] = m_transform.viewProjection[row * 4 + column];
+            }
+            finalTransform = world * XMLoadFloat4x4(&viewProjectionData);
+        }
+        else
+        {
+            const float width = static_cast<float>(m_renderer->GetWidth());
+            const float height = static_cast<float>(m_renderer->GetHeight());
+            const float aspect = height > 0.0f ? width / height : 1.0f;
+            finalTransform = world * XMMatrixOrthographicLH(2.0f * aspect, 2.0f, 0.0f, 1.0f);
+        }
+
+        memcpy(m_cbMapped, &finalTransform, sizeof(XMMATRIX));
 
         // Fetch the live command list from the renderer
         ID3D12GraphicsCommandList* cmd = m_renderer->GetCommandList();
@@ -80,17 +97,18 @@ namespace UwU_Engine
         cmd->SetGraphicsRootConstantBufferView(0, m_cbGPUAddress);
         cmd->SetGraphicsRootDescriptorTable(1, m_srvHeap->GetGPUDescriptorHandleForHeapStart());
         cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        cmd->IASetVertexBuffers(0, 1, &m_vbView);
-        cmd->IASetIndexBuffer(&m_ibView);
-        cmd->DrawIndexedInstanced(m_indexCount, 1, 0, 0, 0);
+        const auto& vertexBufferView = m_geometry.GetVertexBufferView();
+        const auto& indexBufferView = m_geometry.GetIndexBufferView();
+        cmd->IASetVertexBuffers(0, 1, &vertexBufferView);
+        cmd->IASetIndexBuffer(&indexBufferView);
+        cmd->DrawIndexedInstanced(m_geometry.GetIndexCount(), 1, 0, 0, 0);
     }
 
     void DX12Triangle::Shutdown()
     {
         if (m_cbMapped) { m_cbResource->Unmap(0, nullptr); m_cbMapped = nullptr; }
         m_cbResource.Reset();
-        m_vertexBuffer.Reset();
-        m_indexBuffer.Reset();
+        m_geometry.Shutdown();
         m_textureResource.Reset();
         m_textureUploadBuffer.Reset();
         m_srvHeap.Reset();
@@ -137,62 +155,31 @@ namespace UwU_Engine
 
     bool DX12Triangle::BuildShadersAndInputLayout(const DrawableDesc& desc)
     {
-        if (!m_vs.CompileFromFile(desc.material.shaderPath, "VS", "vs_5_0")) return false;
-        if (!m_ps.CompileFromFile(desc.material.shaderPath, "PS", "ps_5_0")) return false;
-
-        m_inputLayout =
+        if (!desc.material.shaderSourceCode.empty())
         {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        };
+            if (!m_vs.CompileFromString(
+                desc.material.shaderSourceCode,
+                desc.material.vertexEntry,
+                desc.material.vertexProfile)) return false;
+
+            if (!m_ps.CompileFromString(
+                desc.material.shaderSourceCode,
+                desc.material.pixelEntry,
+                desc.material.pixelProfile)) return false;
+        }
+        else
+        {
+            if (!m_vs.CompileFromFile(desc.material.shaderPath, "VS", "vs_5_0")) return false;
+            if (!m_ps.CompileFromFile(desc.material.shaderPath, "PS", "ps_5_0")) return false;
+        }
+
+        m_inputLayout = DX12MeshGeometry::GetInputLayout();
         return true;
     }
 
     bool DX12Triangle::BuildGeometry(ID3D12Device* device, const DrawableDesc& desc)
     {
-        if (desc.mesh.vertices.size() < 3 || desc.mesh.indices.size() < 3)
-        {
-            UWU_ENGINE_ERROR("[DX12Triangle] Drawable requires at least 3 vertices and 3 indices");
-            return false;
-        }
-
-        std::vector<DX12Vertex> verts;
-        verts.resize(desc.mesh.vertices.size());
-        for (size_t i = 0; i < verts.size(); ++i)
-        {
-            verts[i].Position = { desc.mesh.vertices[i].position[0],
-                                  desc.mesh.vertices[i].position[1],
-                                  desc.mesh.vertices[i].position[2] };
-            verts[i].Color = { desc.mesh.vertices[i].color[0],
-                               desc.mesh.vertices[i].color[1],
-                               desc.mesh.vertices[i].color[2] };
-            verts[i].TexCoord = { desc.mesh.vertices[i].uv[0],
-                                  desc.mesh.vertices[i].uv[1] };
-        }
-
-        auto MakeBuf = [&](const void* data, UINT bytes, ComPtr<ID3D12Resource>& buf) -> bool
-            {
-                auto hp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-                auto bd = CD3DX12_RESOURCE_DESC::Buffer(bytes);
-                if (FAILED(device->CreateCommittedResource(&hp, D3D12_HEAP_FLAG_NONE,
-                    &bd, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&buf))))
-                    return false;
-                void* mapped; buf->Map(0, nullptr, &mapped);
-                memcpy(mapped, data, bytes); buf->Unmap(0, nullptr);
-                return true;
-            };
-
-        const UINT vbSize = static_cast<UINT>(sizeof(DX12Vertex) * verts.size());
-        if (!MakeBuf(verts.data(), vbSize, m_vertexBuffer)) return false;
-        m_vbView = { m_vertexBuffer->GetGPUVirtualAddress(), vbSize, sizeof(DX12Vertex) };
-
-        const UINT ibSize = static_cast<UINT>(sizeof(uint32_t) * desc.mesh.indices.size());
-        if (!MakeBuf(desc.mesh.indices.data(), ibSize, m_indexBuffer)) return false;
-        m_ibView = { m_indexBuffer->GetGPUVirtualAddress(), ibSize, DXGI_FORMAT_R32_UINT };
-        m_indexCount = static_cast<UINT>(desc.mesh.indices.size());
-
-        return true;
+        return m_geometry.Create(device, desc.mesh);
     }
 
     bool DX12Triangle::BuildTexture(ID3D12Device* device, const DrawableDesc& desc)

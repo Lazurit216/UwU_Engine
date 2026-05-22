@@ -15,6 +15,7 @@
           0.18000000715255737,
           1.0
         ],
+        "materialPath": "",
         "meshPath": "",
         "primitive": "Triangle",
         "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
@@ -24,11 +25,12 @@
         "name": "Player triangle"
       },
       "transform": {
+        "rotationX": 0.0,
         "rotationY": 0.0,
-        "rotationZ": 0.0,
-        "scaleX": 0.41999998688697815,
-        "scaleY": 0.41999998688697815,
-        "scaleZ": 0.41999998688697815,
+        "rotationZ": 0.5490001440048218,
+        "scaleX": 0.7799999713897705,
+        "scaleY": 0.7799999713897705,
+        "scaleZ": 0.7799999713897705,
         "x": -0.8500000238418579,
         "y": -0.30000001192092896,
         "z": 0.0
@@ -47,6 +49,7 @@
           0.25,
           1.0
         ],
+        "materialPath": "",
         "meshPath": "",
         "primitive": "Triangle",
         "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
@@ -56,8 +59,9 @@
         "name": "Player child triangle"
       },
       "transform": {
+        "rotationX": 0.0,
         "rotationY": 0.0,
-        "rotationZ": -7.878174304962158,
+        "rotationZ": -55.09514236450195,
         "scaleX": 0.44999998807907104,
         "scaleY": 0.44999998807907104,
         "scaleZ": 1.0,
@@ -75,6 +79,7 @@
           0.30000001192092896,
           1.0
         ],
+        "materialPath": "",
         "meshPath": "",
         "primitive": "Triangle",
         "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
@@ -84,13 +89,14 @@
         "name": "Auto spinner"
       },
       "transform": {
+        "rotationX": 0.0,
         "rotationY": 0.0,
-        "rotationZ": 6.4879069328308105,
+        "rotationZ": 45.37245559692383,
         "scaleX": 0.3400000035762787,
         "scaleY": 0.3400000035762787,
         "scaleZ": 1.0,
         "x": -0.20000000298023224,
-        "y": 0.3524063527584076,
+        "y": 0.35998713970184326,
         "z": 0.0
       }
     },
@@ -103,6 +109,7 @@
           1.0,
           1.0
         ],
+        "materialPath": "",
         "meshPath": "",
         "primitive": "Triangle",
         "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
@@ -112,6 +119,7 @@
         "name": "Static blue triangle"
       },
       "transform": {
+        "rotationX": 0.0,
         "rotationY": 0.0,
         "rotationZ": 0.3499999940395355,
         "scaleX": 0.30000001192092896,
@@ -124,11 +132,14 @@
     },
     {
       "camera": {
+        "farPlane": 100.0,
+        "fovYRadians": 1.0471975803375244,
         "moveSpeed": 0.800000011920929,
+        "nearPlane": 0.009999999776482582,
         "primary": true,
         "viewHalfHeight": 1.0,
         "viewHalfWidth": 1.7999999523162842,
-        "zoom": 0.3999999761581421,
+        "zoom": 0.8799999952316284,
         "zoomSpeed": 1.0
       },
       "id": 5,
@@ -136,14 +147,15 @@
         "name": "Main camera"
       },
       "transform": {
+        "rotationX": 0.0,
         "rotationY": 0.0,
         "rotationZ": 0.0,
         "scaleX": 1.0,
         "scaleY": 1.0,
         "scaleZ": 1.0,
-        "x": 0.0,
-        "y": 0.0,
-        "z": 0.0
+        "x": 0.6407204270362854,
+        "y": -0.2320251613855362,
+        "z": -3.0
       }
     },
     {
@@ -155,6 +167,7 @@
           1.0,
           1.0
         ],
+        "materialPath": "..\\..\\Sandbox\\src\\Assets\\Materials\\Shiba.material.json",
         "meshPath": "..\\..\\Sandbox\\src\\Assets\\Models\\Shiba\\Shiba.obj",
         "primitive": "CustomMesh",
         "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
@@ -164,13 +177,44 @@
         "name": "Shiba model"
       },
       "transform": {
-        "rotationY": 1.5707999467849731,
+        "rotationX": 0.0,
+        "rotationY": 27.4979190826416,
         "rotationZ": 0.0,
         "scaleX": 1.25,
         "scaleY": 1.25,
         "scaleZ": 1.25,
         "x": 0.8500000238418579,
         "y": 0.18000000715255737,
+        "z": 0.0
+      }
+    },
+    {
+      "id": 7,
+      "meshRenderer": {
+        "color": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "materialPath": "..\\..\\Sandbox\\src\\Assets\\Materials\\Shiba.material.json",
+        "meshPath": "..\\..\\Sandbox\\src\\Assets\\Models\\Shiba\\Shiba.obj",
+        "primitive": "CustomMesh",
+        "shaderPath": "..\\..\\Sandbox\\src\\Assets\\Shaders\\Color.hlsl",
+        "texturePath": "..\\..\\Sandbox\\src\\Assets\\Textures\\Shiba_base.png"
+      },
+      "tag": {
+        "name": "Static Shiba model"
+      },
+      "transform": {
+        "rotationX": 0.0,
+        "rotationY": 1.5707999467849731,
+        "rotationZ": 0.0,
+        "scaleX": 0.75,
+        "scaleY": 0.75,
+        "scaleZ": 0.75,
+        "x": -1.0499999523162842,
+        "y": 0.2800000011920929,
         "z": 0.0
       }
     }
