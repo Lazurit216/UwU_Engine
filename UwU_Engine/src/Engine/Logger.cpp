@@ -7,6 +7,13 @@ namespace UwU_Engine
 
     Logger* Logger::s_EngineLogger = nullptr;
     Logger* Logger::s_ClientLogger = nullptr;
+    std::vector<Logger::Entry> Logger::s_entries;
+    std::mutex Logger::s_entriesMutex;
+
+    namespace
+    {
+        constexpr size_t kMaxBufferedLogEntries = 2000;
+    }
 
     // Helpers
     bool Logger::EnsureLogsCacheDirectory()
@@ -119,11 +126,24 @@ namespace UwU_Engine
         std::cout << formatted;
         OutputDebugStringA(formatted.c_str());
 
+        {
+            std::lock_guard entriesLock(s_entriesMutex);
+            s_entries.push_back(Entry{ level, m_name, message, formatted });
+            if (s_entries.size() > kMaxBufferedLogEntries)
+                s_entries.erase(s_entries.begin(), s_entries.begin() + (s_entries.size() - kMaxBufferedLogEntries));
+        }
+
         if (m_file.is_open())
         {
             m_file << formatted;
             m_file.flush();
         }
+    }
+
+    std::vector<Logger::Entry> Logger::GetEntries()
+    {
+        std::lock_guard lock(s_entriesMutex);
+        return s_entries;
     }
 
     // Static Init / Shutdown

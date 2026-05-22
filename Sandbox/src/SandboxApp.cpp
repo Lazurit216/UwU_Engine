@@ -3,10 +3,9 @@
 #include "Engine/Config.h"
 #include "Engine/Renderer/DirectX12/DX12Renderer.h"
 #include "Engine/GameState/States/LoadingState.h"
-#include "Engine/GameState/States/MainMenuState.h"
 #include "Engine/GameState/States/GameplayState.h"
 #include "Engine/GameState/States/GamePauseState.h"
-#include "Engine/Renderer/MeshGeometry.h"
+#include "Engine/GameState/States/EditorState.h"
 
 using namespace UwU_Engine;
 
@@ -48,94 +47,30 @@ protected:
         WindowContext c0;
         c0.window = win0;
         c0.renderer = std::move(r0);
-        RegisterContext(std::move(c0));         // idx 0 - primary
-
-        //Secondary window
-        auto* sharedDX12 = static_cast<DX12Renderer*>(GetContext(0).renderer.get());
-
-        Window* win1 = m_windowManager.Create(
-            { m_cfg.GetInt("windows.secondary.width",  800),
-              m_cfg.GetInt("windows.secondary.height", 600),
-              m_cfg.GetString("windows.secondary.title", "UwU Engine - Secondary") });
-        if (!win1) return false;
-
-        auto r1 = std::make_unique<DX12Renderer>();
-        if (!r1->InitShared(win1->GetNativeHandle(), win1->GetWidth(), win1->GetHeight(),
-            sharedDX12->GetDevice(), sharedDX12->GetFactory()))
-            return false;
-
-        auto bg1 = m_cfg.GetColor3("windows.secondary.bgColor", { 0.0f, 0.0f, 0.0f });
-        r1->SetClearColor(bg1[0], bg1[1], bg1[2]);
-
-        WindowContext c1;
-        c1.window = win1;
-        c1.renderer = std::move(r1);
-        RegisterContext(std::move(c1));          // idx 1 - secondary
-
-        m_secondaryDesc.material.shaderPath = shaderPath;
-        m_secondaryDesc.material.baseColor = { 1.f, 0.85f, 0.15f, 1.f };
-        m_secondaryDesc.mesh = MeshFactory::CreateTriangle(1.2f, m_secondaryDesc.material.baseColor);
+        RegisterContext(std::move(c0));
 
         // State chain (state manager runs against primary renderer)
         auto makePause = []() { return std::make_shared<GamePauseState>(); };
-        auto makeGameplay = [makePause, shaderPath, scenePath]() -> std::shared_ptr<IGameState>
+        auto makeGameplay = [makePause, shaderPath, scenePath]() -> std::shared_ptr<GameplayState>
             {
                 return std::make_shared<GameplayState>(makePause, shaderPath, scenePath);
             };
-        auto makeMenu = [makeGameplay]() { return std::make_shared<MainMenuState>(makeGameplay); };
+        auto makeEditor = [makeGameplay, scenePath]() -> std::shared_ptr<IGameState>
+            {
+                return std::make_shared<EditorState>(makeGameplay(), scenePath);
+            };
 
         LoadingState::ScenePreloadDesc preloadDesc;
         preloadDesc.scenePath = scenePath;
         preloadDesc.fallbackShaderPath = shaderPath;
-        InitStateManager(std::make_shared<LoadingState>(makeMenu, std::move(preloadDesc), 0.2f));
+        InitStateManager(std::make_shared<LoadingState>(makeEditor, std::move(preloadDesc), 0.2f));
 
-        UWU_ENGINE_INFO("[Sandbox] OnInit complete - 2 windows, shared DX12 device");
+        UWU_ENGINE_INFO("[Sandbox] OnInit complete - 1 window");
         return true;
-    }
-
-    void OnFixedUpdate(float fixedDt) override
-    {
-        m_secondaryRotation += 1.2f * fixedDt;   // steady ~1.2 rad/s regardless of FPS
-        if (!m_secondaryDrawable)
-            return;
-
-        ObjectTransform t = m_secondaryDrawable->GetTransform();
-        t.rotation = m_secondaryRotation;
-        m_secondaryDrawable->SetTransform(t);
-    }
-
-    void OnContextRender(int idx, IRenderer* renderer) override
-    {
-        if (idx != 1 || !renderer)
-            return;
-
-        if (!m_secondaryDrawable)
-        {
-            m_secondaryDrawable = renderer->CreateDrawable(m_secondaryDesc);
-            if (m_secondaryDrawable)
-            {
-                ObjectTransform t;
-                t.scale = 1.0f;
-                t.rotation = m_secondaryRotation;
-                m_secondaryDrawable->SetTransform(t);
-            }
-            else
-            {
-                UWU_WARN("Sandbox", "Secondary triangle Init failed - secondary window will be empty");
-                return;
-            }
-        }
-
-        if (m_secondaryDrawable->IsReady())
-            m_secondaryDrawable->Draw();
     }
 
 private:
     Config m_cfg;
-
-    DrawableDesc m_secondaryDesc;
-    std::unique_ptr<IDrawable> m_secondaryDrawable;
-    float m_secondaryRotation = 0.0f;
 };
 
 UwU_Engine::Application* UwU_Engine::CreateApplication()

@@ -15,6 +15,8 @@
 
 namespace UwU_Engine
 {
+	class ImGuiLayer;
+
 	struct WindowContext
 	{
 		InputManager input;
@@ -64,6 +66,8 @@ namespace UwU_Engine
 		void OnWindowResize(WindowResizeEvent& e, int idx);
 
 		void TickContext(WindowContext& ctx, int idx);
+		void InitImGuiLayer();
+		void ShutdownImGuiLayer();
 		void ShowStats();
 	protected:
 		WindowManager    m_windowManager;
@@ -74,6 +78,7 @@ namespace UwU_Engine
 	private:
 		std::vector<WindowContext> m_contexts;
 		float m_fixedAccumulator = 0.f;
+		std::unique_ptr<ImGuiLayer> m_imguiLayer;
 
 	};
 

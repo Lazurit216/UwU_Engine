@@ -6,7 +6,15 @@ namespace UwU_Engine
     class UWU_API Logger
     {
     public:
-        enum class Level { Trace, Info, Warn, Error };
+        enum class Level { Trace, Event, Info, Warn, Error };
+
+        struct Entry
+        {
+            Level level = Level::Info;
+            std::string loggerName;
+            std::string message;
+            std::string formattedLine;
+        };
 
         // Instance constructor
         Logger(const std::string& name, const std::string& filePath = "", Level minLevel = Level::Trace);
@@ -37,13 +45,21 @@ namespace UwU_Engine
             Write(Level::Error, std::format(fmt, std::forward<Args>(args)...));
         }
 
+        template<typename... Args>
+        void Event(std::format_string<Args...> fmt, Args&&... args)
+        {
+            Write(Level::Event, std::format(fmt, std::forward<Args>(args)...));
+        }
+
         void Trace(const std::string& msg) { Write(Level::Trace, msg); }
         void Info(const std::string& msg) { Write(Level::Info, msg); }
         void Warn(const std::string& msg) { Write(Level::Warn, msg); }
         void Error(const std::string& msg) { Write(Level::Error, msg); }
+        void Event(const std::string& msg) { Write(Level::Event, msg); }
 
         static void Init();
         static void Shutdown();
+        static std::vector<Entry> GetEntries();
 
         static Logger* GetEngineLogger() { return s_EngineLogger; }
         static Logger* GetClientLogger() { return s_ClientLogger; }
@@ -59,6 +75,7 @@ namespace UwU_Engine
             case Level::Info:  return "INFO";
             case Level::Warn:  return "WARN";
             case Level::Error: return "ERROR";
+            case Level::Event: return "EVENT";
             }
             return "?????";
         }
@@ -72,6 +89,8 @@ namespace UwU_Engine
         // Loggers
         static Logger* s_EngineLogger;
         static Logger* s_ClientLogger;
+        static std::vector<Entry> s_entries;
+        static std::mutex s_entriesMutex;
 
         // Helpers (kept static)
         static bool EnsureLogsCacheDirectory();
@@ -84,9 +103,11 @@ namespace UwU_Engine
 #define UWU_ENGINE_INFO(...)  ::UwU_Engine::Logger::GetEngineLogger()->Info(__VA_ARGS__)
 #define UWU_ENGINE_WARN(...)  ::UwU_Engine::Logger::GetEngineLogger()->Warn(__VA_ARGS__)
 #define UWU_ENGINE_ERROR(...) ::UwU_Engine::Logger::GetEngineLogger()->Error(__VA_ARGS__)
+#define UWU_ENGINE_EVENT(...) ::UwU_Engine::Logger::GetEngineLogger()->Event(__VA_ARGS__)
 
 // Client log macros
 #define UWU_TRACE(...) ::UwU_Engine::Logger::GetClientLogger()->Trace(__VA_ARGS__)
 #define UWU_INFO(...)  ::UwU_Engine::Logger::GetClientLogger()->Info(__VA_ARGS__)
 #define UWU_WARN(...)  ::UwU_Engine::Logger::GetClientLogger()->Warn(__VA_ARGS__)
 #define UWU_ERROR(...) ::UwU_Engine::Logger::GetClientLogger()->Error(__VA_ARGS__)
+#define UWU_EVENT(...) ::UwU_Engine::Logger::GetClientLogger()->Event(__VA_ARGS__)

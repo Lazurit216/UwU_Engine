@@ -41,9 +41,41 @@ foreach(SOURCE_FILE ${ENGINE_SOURCES})
 endforeach()
 
 target_include_directories(UwU_Engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_compile_definitions(UwU_Engine PRIVATE UWU_BUILD_DLL UWU_PLATFORM_WINDOWS)
+target_compile_definitions(UwU_Engine PRIVATE UWU_BUILD_DLL UWU_PLATFORM_WINDOWS NOMINMAX)
 
 set(UWU_EXTERNAL_LIBS_DIR "${CMAKE_SOURCE_DIR}/ExternalLibs")
+
+set(UWU_IMGUI_DIR "${UWU_EXTERNAL_LIBS_DIR}/ImGui")
+set(UWU_IMGUIZMO_DIR "${UWU_EXTERNAL_LIBS_DIR}/ImGuizmo")
+set(UWU_IMGUI_SOURCES
+    "${UWU_IMGUI_DIR}/imgui.cpp"
+    "${UWU_IMGUI_DIR}/imgui_draw.cpp"
+    "${UWU_IMGUI_DIR}/imgui_tables.cpp"
+    "${UWU_IMGUI_DIR}/imgui_widgets.cpp"
+    "${UWU_IMGUI_DIR}/imgui_demo.cpp"
+    "${UWU_IMGUI_DIR}/imgui_impl_win32.cpp"
+    "${UWU_IMGUI_DIR}/imgui_impl_dx12.cpp"
+)
+set(UWU_IMGUIZMO_SOURCES
+    "${UWU_IMGUIZMO_DIR}/ImGuizmo.cpp"
+)
+
+foreach(UWU_IMGUI_SOURCE ${UWU_IMGUI_SOURCES})
+    if(NOT EXISTS "${UWU_IMGUI_SOURCE}")
+        message(FATAL_ERROR "ImGui source not found: ${UWU_IMGUI_SOURCE}")
+    endif()
+endforeach()
+
+foreach(UWU_IMGUIZMO_SOURCE ${UWU_IMGUIZMO_SOURCES})
+    if(NOT EXISTS "${UWU_IMGUIZMO_SOURCE}")
+        message(FATAL_ERROR "ImGuizmo source not found: ${UWU_IMGUIZMO_SOURCE}")
+    endif()
+endforeach()
+
+target_sources(UwU_Engine PRIVATE ${UWU_IMGUI_SOURCES} ${UWU_IMGUIZMO_SOURCES})
+target_include_directories(UwU_Engine PRIVATE "${UWU_IMGUI_DIR}" "${UWU_IMGUIZMO_DIR}")
+source_group("ExternalLibs\\ImGui" FILES ${UWU_IMGUI_SOURCES})
+source_group("ExternalLibs\\ImGuizmo" FILES ${UWU_IMGUIZMO_SOURCES})
 
 set(UWU_GLM_INCLUDE_DIR "${UWU_EXTERNAL_LIBS_DIR}")
 if(EXISTS "${UWU_GLM_INCLUDE_DIR}/glm/glm.hpp")

@@ -52,7 +52,11 @@ namespace UwU_Engine
         // Returns nullptr if not yet initialized.
         ID3D12Device* GetDevice()      const { return m_device.Get(); }
         ID3D12GraphicsCommandList* GetCommandList() const { return m_commandList.Get(); }
+        ID3D12CommandQueue* GetCommandQueue() const { return m_commandQueue.Get(); }
         IDXGIFactory6* GetFactory()     const { return m_factory.Get(); }
+        DXGI_FORMAT GetBackBufferFormat() const { return m_backBufferFormat; }
+        DXGI_FORMAT GetDepthStencilFormat() const { return m_depthStencilFormat; }
+        uint32_t GetSwapChainBufferCount() const { return kSwapChainBuffers; }
 
     private:
         //Init helpers

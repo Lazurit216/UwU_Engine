@@ -4,9 +4,39 @@
 #include "GameState/States/MainMenuState.h"
 #include "GameState/States/GameplayState.h"
 #include "GameState/States/GamePauseState.h"
+#include "Engine/Editor/ImGuiLayer.h"
 #include "Renderer/DirectX12/DX12Renderer.h" 
+
+#include "imgui.h"
+
 namespace UwU_Engine 
 {
+	namespace
+	{
+		bool IsMouseInputEvent(EventType type)
+		{
+			return type == EventType::MouseMoved
+				|| type == EventType::MouseButtonPressed
+				|| type == EventType::MouseButtonReleased
+				|| type == EventType::MouseWheel;
+		}
+
+		bool IsKeyboardInputEvent(EventType type)
+		{
+			return type == EventType::KeyPressed || type == EventType::KeyReleased;
+		}
+
+		bool ImGuiWantsEvent(Event& e)
+		{
+			if (!ImGui::GetCurrentContext())
+				return false;
+
+			const ImGuiIO& io = ImGui::GetIO();
+			return (IsMouseInputEvent(e.GetType()) && io.WantCaptureMouse)
+				|| (IsKeyboardInputEvent(e.GetType()) && io.WantCaptureKeyboard);
+		}
+	}
+
 	Application::Application() = default;
 
 	Application::~Application()
@@ -27,6 +57,7 @@ namespace UwU_Engine
 			return;
 		}
 
+		InitImGuiLayer();
 		UWU_ENGINE_INFO("Application is running ({} window(s))", m_contexts.size());
 		m_timer.Reset();
 
@@ -71,6 +102,7 @@ namespace UwU_Engine
 			ShowStats();
 		}
 
+		ShutdownImGuiLayer();
 		OnShutdown();
 		UWU_ENGINE_INFO("=== Application shut down ===");
 	}
@@ -109,6 +141,14 @@ namespace UwU_Engine
 
 		ctx.renderer->BeginFrame();
 
+		DX12Renderer* imguiRenderer = nullptr;
+		if (idx == 0 && m_imguiLayer && m_imguiLayer->IsReady())
+		{
+			imguiRenderer = dynamic_cast<DX12Renderer*>(ctx.renderer.get());
+			if (imguiRenderer)
+				m_imguiLayer->BeginFrame();
+		}
+
 		// State system renders only on the primary context
 		if (idx == 0)
 		{
@@ -119,12 +159,15 @@ namespace UwU_Engine
 		// Per-context custom geometry hook (secondary triangle, UI, etc.)
 		OnContextRender(idx, ctx.renderer.get());
 
+		if (imguiRenderer)
+			m_imguiLayer->EndFrame(*imguiRenderer);
+
 		ctx.renderer->EndFrame();
 	}
 
 	void Application::OnEvent(Event& e, int idx)
 	{
-		UWU_ENGINE_TRACE("Event [{}]: {}", idx, e.GetName());
+		UWU_ENGINE_EVENT("Event [{}]: {}", idx, e.GetName());
 
 		EventDispatcher d(e);
 		d.Dispatch<WindowCloseEvent>(std::bind(&Application::OnWindowClose, this, std::placeholders::_1, idx), EventType::WindowClose);
@@ -132,6 +175,12 @@ namespace UwU_Engine
 		d.Dispatch<WindowMaximizeEvent>(std::bind(&Application::OnWindowMaximize, this, std::placeholders::_1, idx), EventType::WindowMaximize);
 		d.Dispatch<WindowRestoreEvent>(std::bind(&Application::OnWindowRestore, this, std::placeholders::_1, idx), EventType::WindowRestore);
 		d.Dispatch<WindowResizeEvent>(std::bind(&Application::OnWindowResize, this, std::placeholders::_1, idx), EventType::WindowResize);
+
+		if (idx == 0 && ImGuiWantsEvent(e))
+		{
+			e.Handled = true;
+			return;
+		}
 
 		m_contexts[idx].input.OnEvent(e);
 
@@ -175,6 +224,35 @@ namespace UwU_Engine
 		UWU_ENGINE_INFO("[App] Window {} resized - {}x{}", idx, e.GetWidth(), e.GetHeight());
 		if (m_contexts[idx].renderer)
 			m_contexts[idx].renderer->OnResize(e.GetWidth(), e.GetHeight());
+	}
+
+	void Application::InitImGuiLayer()
+	{
+		if (m_contexts.empty() || !m_contexts[0].window || !m_contexts[0].renderer)
+			return;
+
+		auto* dx12Renderer = dynamic_cast<DX12Renderer*>(m_contexts[0].renderer.get());
+		if (!dx12Renderer)
+		{
+			UWU_ENGINE_WARN("[ImGui] Skipped: primary renderer is not DX12");
+			return;
+		}
+
+		m_imguiLayer = std::make_unique<ImGuiLayer>();
+		if (!m_imguiLayer->Init(m_contexts[0].window->GetNativeHandle(), *dx12Renderer))
+		{
+			UWU_ENGINE_WARN("[ImGui] Layer disabled after init failure");
+			m_imguiLayer.reset();
+		}
+	}
+
+	void Application::ShutdownImGuiLayer()
+	{
+		if (m_imguiLayer)
+		{
+			m_imguiLayer->Shutdown();
+			m_imguiLayer.reset();
+		}
 	}
 
 	void Application::ShowStats()

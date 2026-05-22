@@ -34,6 +34,10 @@ namespace UwU_Engine
         void            Render(const StateContext& ctx)           override;
 
         std::string Name() const override { return "Gameplay"; }
+        World& GetWorld() { return m_world; }
+        const World& GetWorld() const { return m_world; }
+        bool IsPhysicsDebugVisible() const { return m_physicsDebugRenderSystem.IsVisible(); }
+        void SetPhysicsDebugVisible(bool visible) { m_physicsDebugRenderSystem.SetVisible(visible); }
 
     private:
         void OnKeyPressed(KeyPressedEvent& ke);

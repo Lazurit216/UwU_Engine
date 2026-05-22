@@ -1,8 +1,12 @@
-#include "Win32Window.h"
 #include "uwupch.h"
+#include "Win32Window.h"
 #include "Engine/Events/WindowEvents.h"
 #include "Engine/Events/KeyboardEvents.h"
 #include "Engine/Events/MouseEvents.h"  
+
+#include "imgui.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace UwU_Engine
 {
@@ -141,6 +145,9 @@ namespace UwU_Engine
 
         if (!self || !self->m_eventCallback)
             return DefWindowProcW(hwnd, msg, wParam, lParam);
+
+        if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam))
+            return 0;
 
         switch (msg)
         {
