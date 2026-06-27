@@ -236,7 +236,21 @@ namespace UwU_Engine
 #ifdef _DEBUG
         flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
-        CHECK_HR(CreateDXGIFactory2(flags, IID_PPV_ARGS(&m_factory)));
+        HRESULT hr = CreateDXGIFactory2(flags, IID_PPV_ARGS(&m_factory));
+#ifdef _DEBUG
+        if (FAILED(hr) && flags != 0)
+        {
+            UWU_ENGINE_WARN("[DX12] Debug DXGI factory unavailable, retrying without debug flag");
+            flags = 0;
+            hr = CreateDXGIFactory2(flags, IID_PPV_ARGS(&m_factory));
+        }
+#endif
+        if (FAILED(hr))
+        {
+            UWU_ENGINE_ERROR("[DX12] CreateDXGIFactory2 failed, hr={:#x}", (unsigned)hr);
+            return false;
+        }
+
         UWU_ENGINE_INFO("[DX12] DXGI factory created");
         return true;
     }

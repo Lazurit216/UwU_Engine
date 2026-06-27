@@ -8,7 +8,7 @@ if not exist "build" mkdir build
 cd build
 
 echo [1/2] Configuring CMake...
-cmake .. -G "Visual Studio 17 2022" -A x64 
+cmake .. -G "Visual Studio 18 2026" -A x64 
 echo [2/2] Building Debug...
 cmake --build . --config Debug --verbose
 
