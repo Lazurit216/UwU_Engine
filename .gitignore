@@ -1,8 +1,12 @@
 # Binaries
-**/bin/
+/bin/
 bin-int/
 Intermediates/
 build/
+
+# Third-party runtime binaries required for clean builds
+!ExternalLibs/Assimp/bin/
+!ExternalLibs/Assimp/bin/**
 
 # log files
 *.log
