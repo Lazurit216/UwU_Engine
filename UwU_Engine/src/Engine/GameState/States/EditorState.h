@@ -26,6 +26,7 @@ namespace UwU_Engine
         void DrawEditorUi(const StateContext& ctx);
         void DrawDockspace();
         void DrawToolbar();
+        void SaveCurrentScene();
         void TogglePlayMode();
         void DrawLoadSceneMenu();
         void DrawSceneWindow(const StateContext& ctx, World& world);

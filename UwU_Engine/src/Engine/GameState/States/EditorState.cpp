@@ -307,6 +307,8 @@ namespace UwU_Engine
 
         if (ImGui::BeginMenu("File"))
         {
+            if (ImGui::MenuItem("Save Scene"))
+                SaveCurrentScene();
             DrawLoadSceneMenu();
             if (ImGui::MenuItem("Rescan Assets"))
                 RefreshAssets();
@@ -322,6 +324,28 @@ namespace UwU_Engine
         ImGui::Text("Selected: %u", m_selectedEntity);
 
         ImGui::EndMainMenuBar();
+    }
+
+    void EditorState::SaveCurrentScene()
+    {
+        if (!m_gameplayState)
+        {
+            UWU_ENGINE_WARN("[Editor] Cannot save scene: gameplay state is unavailable");
+            return;
+        }
+
+        if (m_currentScenePath.empty())
+            m_currentScenePath = (m_assetsRoot / "Scenes" / "scene_test_saved.json").lexically_normal();
+
+        if (m_gameplayState->SaveSceneToFile(m_currentScenePath.string()))
+        {
+            UWU_ENGINE_INFO("[Editor] Scene saved to '{}'", m_currentScenePath.string());
+            RefreshAssets();
+        }
+        else
+        {
+            UWU_ENGINE_WARN("[Editor] Failed to save scene '{}'", m_currentScenePath.string());
+        }
     }
 
     void EditorState::TogglePlayMode()
