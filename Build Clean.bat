@@ -1,30 +1,18 @@
 @echo off
+setlocal
+
 echo ====================================================
 echo    UwU Engine - Cleaning Build
 echo ====================================================
 
-if exist "build" (
-    cd build
-    echo Removing compiled files...
-    cmake --build . --target clean --config Debug
-    cd ..
-) else (
-    echo build folder not found
-)
+choice /C DR /N /M "Configuration to clean: [D] Debug, [R] Release "
+if errorlevel 3 exit /b 1
+if errorlevel 2 goto :release
+if not errorlevel 1 exit /b 1
 
-if exist "bin" (
-    echo Removing bin directory...
-    rmdir /s /q bin
-)
+call "%~dp0Clean Debug.bat"
+exit /b %ERRORLEVEL%
 
-if exist "bin-int" (
-    echo Removing bin-int directory...
-    rmdir /s /q bin-int
-)
-
-echo.
-echo ====================================================
-echo    Clean finished!
-echo ====================================================
-
-pause
+:release
+call "%~dp0Clean Release.bat"
+exit /b %ERRORLEVEL%

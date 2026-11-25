@@ -2,6 +2,7 @@
 #include "TextureLoader.h"
 
 #include "Engine/Resources/BinaryResourceCache.h"
+#include "Engine/Profiling.h"
 
 #ifdef UWU_HAS_STB_IMAGE
 #define STB_IMAGE_IMPLEMENTATION
@@ -12,6 +13,7 @@ namespace UwU_Engine
 {
     bool TextureLoader::Load(const std::string& path, TextureAsset& out, std::string& error)
     {
+        UWU_PROFILE_ZONE("Load texture");
         const std::string cachePath = BinaryResourceCache::TextureCachePath(path);
         if (BinaryResourceCache::IsFresh(path, cachePath))
         {

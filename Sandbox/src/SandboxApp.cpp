@@ -38,7 +38,9 @@ protected:
         if (!win0) return false;
 
         auto r0 = std::make_unique<DX12Renderer>();
-        if (!r0->Init(win0->GetNativeHandle(), win0->GetWidth(), win0->GetHeight()))
+        RendererConfig rendererConfig;
+        rendererConfig.vsync = m_cfg.GetBool("engine.vsync", rendererConfig.vsync);
+        if (!r0->Init(win0->GetNativeHandle(), win0->GetWidth(), win0->GetHeight(), rendererConfig))
             return false;
 
         auto bg0 = m_cfg.GetColor3("windows.primary.bgColor", { 0.0f, 0.0f, 0.0f });

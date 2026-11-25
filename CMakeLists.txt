@@ -25,8 +25,21 @@ message(STATUS "PLATFORM = ${PLATFORM}")
 message(STATUS "CMAKE_VS_PLATFORM_NAME = ${CMAKE_VS_PLATFORM_NAME}")
 message(STATUS "CMAKE_GENERATOR_PLATFORM = ${CMAKE_GENERATOR_PLATFORM}")
 
-set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>-${PLATFORM}")
-set(INT_DIR "${CMAKE_SOURCE_DIR}/bin-int/$<CONFIG>-${PLATFORM}")
+option(UWU_ENABLE_TRACY "Enable Tracy profiling in UwU Engine" OFF)
+set(UWU_BUILD_SUFFIX "")
+if(UWU_ENABLE_TRACY)
+    set(UWU_BUILD_SUFFIX "-Tracy")
+    set(TRACY_ENABLE ON)
+    set(TRACY_STATIC ON)
+    set(TRACY_ONLY_LOCALHOST ON)
+    set(TRACY_NO_BROADCAST ON)
+    # Retain startup events so the viewer can capture scene loading.
+    set(TRACY_ON_DEMAND OFF)
+    add_subdirectory(ExternalLibs/Tracy EXCLUDE_FROM_ALL)
+endif()
+
+set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>-${PLATFORM}${UWU_BUILD_SUFFIX}")
+set(INT_DIR "${CMAKE_SOURCE_DIR}/bin-int/$<CONFIG>-${PLATFORM}${UWU_BUILD_SUFFIX}")
 
 add_subdirectory(UwU_Engine)
 add_subdirectory(Sandbox)

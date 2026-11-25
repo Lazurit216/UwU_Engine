@@ -76,6 +76,12 @@ namespace UwU_Engine
         }
     }
 
+    bool Config::GetBool(const std::string& path, bool def) const
+    {
+        const nlohmann::json* value = FindValue(m_storage->root, path);
+        return value && value->is_boolean() ? value->get<bool>() : def;
+    }
+
     float Config::GetFloat(const std::string& path, float def) const
     {
         const nlohmann::json* value = FindValue(m_storage->root, path);

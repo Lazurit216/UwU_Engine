@@ -4,6 +4,7 @@
 #include "d3dx12.h"
 #include "Engine/Assets/DX12Apps/DX12Triangle.h"
 #include "Engine/Renderer/IDrawable.h"
+#include "Engine/Profiling.h"
 
 #define CHECK_HR(expr)                                                      \
     do {                                                                    \
@@ -152,6 +153,7 @@ namespace UwU_Engine
 
     void DX12Renderer::BeginFrame()
     {
+        UWU_PROFILE_ZONE("DX12 begin frame");
         m_commandAllocator->Reset();
         m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
@@ -179,6 +181,7 @@ namespace UwU_Engine
 
     void DX12Renderer::EndFrame()
     {
+        UWU_PROFILE_ZONE("DX12 end frame");
         auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
             CurrentBackBuffer(),
             D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -187,9 +190,15 @@ namespace UwU_Engine
         m_commandList->Close();
 
         ID3D12CommandList* lists[] = { m_commandList.Get() };
-        m_commandQueue->ExecuteCommandLists(1, lists);
+        {
+            UWU_PROFILE_ZONE("DX12 submit");
+            m_commandQueue->ExecuteCommandLists(1, lists);
+        }
 
-        m_swapChain->Present(m_vsync ? 1 : 0, 0);
+        {
+            UWU_PROFILE_ZONE("DX12 Present");
+            m_swapChain->Present(m_vsync ? 1 : 0, 0);
+        }
 
         WaitForPreviousFrame();
         m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
@@ -410,6 +419,7 @@ namespace UwU_Engine
 
     void DX12Renderer::FlushCommandQueue()
     {
+        UWU_PROFILE_ZONE("DX12 fence wait");
         ++m_fenceValue;
         m_commandQueue->Signal(m_fence.Get(), m_fenceValue);
         if (m_fence->GetCompletedValue() < m_fenceValue)

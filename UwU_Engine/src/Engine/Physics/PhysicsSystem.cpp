@@ -2,6 +2,7 @@
 #include "PhysicsSystem.h"
 
 #include "Engine/ECS/TransformHierarchy.h"
+#include "Engine/Profiling.h"
 
 namespace UwU_Engine
 {
@@ -59,6 +60,7 @@ namespace UwU_Engine
 
     void PhysicsSystem::FixedUpdate(World& world, float fixedDt)
     {
+        UWU_PROFILE_ZONE("Physics step");
         if (fixedDt <= 0.0f)
             return;
 
@@ -91,22 +93,27 @@ namespace UwU_Engine
             });
 
         const auto objects = CollectObjects(world);
-        for (size_t i = 0; i < objects.size(); ++i)
         {
-            for (size_t j = i + 1; j < objects.size(); ++j)
+            UWU_PROFILE_ZONE("Physics detect and resolve contacts");
+            for (size_t i = 0; i < objects.size(); ++i)
             {
-                PhysicsContact contact;
-                if (!DetectCollision(objects[i], objects[j], contact))
-                    continue;
+                for (size_t j = i + 1; j < objects.size(); ++j)
+                {
+                    PhysicsContact contact;
+                    if (!DetectCollision(objects[i], objects[j], contact))
+                        continue;
 
-                contact.trigger = objects[i].collider->isTrigger || objects[j].collider->isTrigger;
-                m_contacts.push_back(contact);
-                m_currentPairs.insert(MakePairKey(contact.a, contact.b));
+                    contact.trigger = objects[i].collider->isTrigger || objects[j].collider->isTrigger;
+                    m_contacts.push_back(contact);
+                    m_currentPairs.insert(MakePairKey(contact.a, contact.b));
 
-                if (!contact.trigger)
-                    ResolveCollision(m_contacts.back(), objects[i], objects[j]);
+                    if (!contact.trigger)
+                        ResolveCollision(m_contacts.back(), objects[i], objects[j]);
+                }
             }
         }
+        UWU_PROFILE_PLOT("Physics colliders", static_cast<int64_t>(objects.size()));
+        UWU_PROFILE_PLOT("Physics contacts", static_cast<int64_t>(m_contacts.size()));
 
         world.ForEach<RigidbodyComponent>(
             [](EntityId /*entity*/, RigidbodyComponent& body)

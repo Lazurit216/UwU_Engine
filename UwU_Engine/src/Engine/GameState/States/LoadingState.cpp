@@ -2,6 +2,7 @@
 #include "LoadingState.h"
 
 #include "Engine/Resources/ResourceManager.h"
+#include "Engine/Profiling.h"
 
 #include <nlohmann/json.hpp>
 
@@ -96,6 +97,8 @@ namespace UwU_Engine
 
     void LoadingState::OnEnter(const StateContext& ctx)
     {
+        UWU_PROFILE_ZONE("Queue scene preload");
+        UWU_PROFILE_MESSAGE("Scene preload started");
         m_elapsed = 0.0f;
         m_lastLoggedProgress = -1.0f;
         m_preloadStarted = false;
@@ -112,10 +115,12 @@ namespace UwU_Engine
 
     StateTransition LoadingState::Update(const StateContext& ctx, float dt)
     {
+        UWU_PROFILE_ZONE("Check scene preload");
         m_elapsed += dt;
         UpdateDependentResources();
 
         const float progress = GetProgress();
+        UWU_PROFILE_PLOT("Scene preload progress (%)", static_cast<double>(progress) * 100.0);
         if (progress - m_lastLoggedProgress >= 0.25f || (progress >= 1.0f && m_lastLoggedProgress < 1.0f))
         {
             UWU_ENGINE_INFO("[LoadingState] Resource loading progress: {:.0f}% ({}/{})",
@@ -127,6 +132,7 @@ namespace UwU_Engine
 
         if (IsLoadingComplete() && m_elapsed >= m_minimumDisplaySeconds)
         {
+            UWU_PROFILE_MESSAGE("Scene preload finished; transition requested");
             UWU_ENGINE_INFO("[LoadingState] Resource loading complete - transitioning");
             return m_nextFactory ? StateTransition::Replace(m_nextFactory()) : StateTransition::None();
         }

@@ -21,6 +21,7 @@ namespace UwU_Engine
 
         bool Load(const std::string& filePath);
 
+        bool GetBool(const std::string& path, bool def = false) const;
         float GetFloat(const std::string& path, float def = 0.f) const;
         int GetInt(const std::string& path, int def = 0) const;
         std::string GetString(const std::string& path, const std::string& def = "") const;

@@ -2,6 +2,7 @@
 #include "MeshLoader.h"
 
 #include "Engine/Resources/BinaryResourceCache.h"
+#include "Engine/Profiling.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/material.h>
@@ -138,6 +139,7 @@ namespace UwU_Engine
 
     bool MeshLoader::Load(const std::string& path, MeshAsset& out, std::string& error)
     {
+        UWU_PROFILE_ZONE("Load mesh");
         const std::string cachePath = BinaryResourceCache::MeshCachePath(path);
         bool cacheIsFresh = BinaryResourceCache::IsFresh(path, cachePath);
 

@@ -1,5 +1,6 @@
 #include "uwupch.h"
 #include "Application.h"
+#include "Profiling.h"
 #include "GameState/States/LoadingState.h"
 #include "GameState/States/MainMenuState.h"
 #include "GameState/States/GameplayState.h"
@@ -35,43 +36,63 @@ namespace UwU_Engine
 
 		while (m_isRunning)
 		{
-			for (auto& ctx : m_contexts)
-				ctx.input.BeginFrame();
-			m_windowManager.PollAll();
+			UWU_PROFILE_ZONE("Frame");
+			{
+				UWU_PROFILE_ZONE("Input");
+				for (auto& ctx : m_contexts)
+					ctx.input.BeginFrame();
+				m_windowManager.PollAll();
+			}
 
 			// Variable timestep
 			m_timer.Tick();
 			const float dt = m_timer.DeltaTime();
 
-			// Fixed timestep accumulator
-			m_fixedAccumulator += dt;
-			while (m_fixedAccumulator >= m_fixedStep)
 			{
-				OnFixedUpdate(m_fixedStep);
+				UWU_PROFILE_ZONE("FixedUpdate");
+#ifdef TRACY_ENABLE
+				int64_t fixedSteps = 0;
+#endif
+				m_fixedAccumulator += dt;
+				while (m_fixedAccumulator >= m_fixedStep)
+				{
+					OnFixedUpdate(m_fixedStep);
+					if (!m_contexts.empty() && m_contexts[0].active)
+					{
+						StateContext sCtx{ m_contexts[0].renderer.get(), &m_contexts[0].input };
+						m_stateManager.FixedUpdate(sCtx, m_fixedStep);
+					}
+					m_fixedAccumulator -= m_fixedStep;
+#ifdef TRACY_ENABLE
+					++fixedSteps;
+#endif
+				}
+				UWU_PROFILE_PLOT("Fixed steps per frame", fixedSteps);
+			}
+
+			{
+				UWU_PROFILE_ZONE("Update");
+				OnUpdate(dt);
+
 				if (!m_contexts.empty() && m_contexts[0].active)
 				{
 					StateContext sCtx{ m_contexts[0].renderer.get(), &m_contexts[0].input };
-					m_stateManager.FixedUpdate(sCtx, m_fixedStep);
+					if (!m_stateManager.Update(sCtx, dt))
+					{
+						m_isRunning = false;
+						break;
+					}
 				}
-				m_fixedAccumulator -= m_fixedStep;
 			}
 
-			OnUpdate(dt);
-
-			if (!m_contexts.empty() && m_contexts[0].active)
 			{
-				StateContext sCtx{ m_contexts[0].renderer.get(), &m_contexts[0].input };
-				if (!m_stateManager.Update(sCtx, dt))
-				{
-					m_isRunning = false;
-					break;
-				}
+				UWU_PROFILE_ZONE("Render");
+				for (int i = 0; i < static_cast<int>(m_contexts.size()); ++i)
+					TickContext(m_contexts[i], i);
 			}
-
-			for (int i = 0; i < static_cast<int>(m_contexts.size()); ++i)
-				TickContext(m_contexts[i], i);
 
 			ShowStats();
+			UWU_PROFILE_FRAME();
 		}
 
 		ShutdownImGuiLayer();
@@ -124,6 +145,7 @@ namespace UwU_Engine
 		// State system renders only on the primary context
 		if (idx == 0)
 		{
+			UWU_PROFILE_ZONE("State render");
 			StateContext sCtx{ ctx.renderer.get(), &ctx.input };
 			m_stateManager.Render(sCtx);
 		}
@@ -132,7 +154,10 @@ namespace UwU_Engine
 		OnContextRender(idx, ctx.renderer.get());
 
 		if (imguiRenderer)
+		{
+			UWU_PROFILE_ZONE("ImGui draw data");
 			m_imguiLayer->EndFrame(*imguiRenderer);
+		}
 
 		ctx.renderer->EndFrame();
 	}
